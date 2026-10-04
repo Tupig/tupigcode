@@ -89,13 +89,11 @@ export function routeTask(params: {
   prompt: string;
   model?: string;
   contextTokens?: number;
-  concurrency?: number;
   env?: NodeJS.ProcessEnv;
   workDir?: string;
 }): RouteDecision {
   const env = params.env ?? process.env;
   const ctx = params.contextTokens ?? 0;
-  const conc = params.concurrency ?? 1;
 
   if (params.model) {
     return { model: params.model, provider: providerFor(env), reason: "显式指定 model", contextTokens: ctx };
@@ -129,7 +127,6 @@ export function routeTask(params: {
       return { model: suggested, provider: "local", reason: `profile:${profile.kind}→${suggested}`, contextTokens: ctx };
     }
     if (ctx >= 14_000) return { model: "8b", provider: "local", reason: "easy-ctx>=14k→8b", contextTokens: ctx };
-    if (conc > 1) return { model: "8b", provider: "local", reason: "easy-并发>1→8b", contextTokens: ctx };
     return { model: "14b", provider: "local", reason: "easy-本地14b", contextTokens: ctx };
   }
   if (provider === "openai") {

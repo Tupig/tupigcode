@@ -43,10 +43,6 @@ describe("routeTask 分流", () => {
     const r = routeTask({ prompt: "读文件", contextTokens: 15_000, env: local as any });
     expect(r.model).toBe("8b");
   });
-  it("easy + 并发>1 → 8b", () => {
-    const r = routeTask({ prompt: "读文件", concurrency: 2, env: local as any });
-    expect(r.model).toBe("8b");
-  });
   it("hard + 有云凭据 → 云端模型", () => {
     const r = routeTask({ prompt: "重构整个 services 模块并统一错误处理", env: { ...local, ...cloud } as any });
     expect(r.provider).toBe("cloud");

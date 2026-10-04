@@ -133,6 +133,14 @@ describe("早期派发边界", () => {
     expect(res.toolResults).toHaveLength(1);
     expect(res.toolResults[0].is_error).toBe(true);
     expect(res.toolResults[0].content).toContain("JSON 解析失败");
+    // 事件配对（issue #102）：tool_result 必须有同 id 的 tool_use 事件，否则消费端断链
+    const tu = res.events.find((e: any) => e.type === "tool_use" && e.toolUseId === res.toolResults[0].tool_use_id);
+    expect(tu).toBeTruthy();
+    expect(tu.input).toEqual({});
+    const trIdx = res.events.findIndex((e: any) => e.type === "tool_result" && e.toolUseId === res.toolResults[0].tool_use_id);
+    const tuIdx = res.events.indexOf(tu);
+    expect(tuIdx).toBeGreaterThanOrEqual(0);
+    expect(tuIdx).toBeLessThan(trIdx);
   }, 15_000);
 
   it("未知工具不提前派发，流结束后按未知工具报错", async () => {

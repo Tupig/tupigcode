@@ -313,8 +313,8 @@ export class QueryEngine {
       return;
     }
 
-    // 根据模式过滤工具
-    const activeTools = this.modeManager.filterTools(this.tools);
+    // 根据模式过滤工具（issue #102-5）：与请求侧 schema / system 目录同源
+    const activeTools = this.activeRequestTools();
 
     yield {
       type: "system",
@@ -378,10 +378,13 @@ export class QueryEngine {
         await fireCompactPost(undefined, hctx, "model");
       }
 
-      const estToolDefs = this.buildToolDefs();
-      const estimatedTokens = this.estimateTokens(
-        loopState.messages, this.buildSystemPrompt(estToolDefs), estToolDefs,
-      );
+      // 每 turn 单次构建（issue #102-4）：估算与 executeTurn 共用同一份 tool schema / system 分层
+      const turnToolDefs = this.buildToolDefs();
+      const turnSysLayers = this.buildSystemLayers(turnToolDefs);
+      const turnSystem = turnSysLayers.volatile
+        ? `${turnSysLayers.stable}\n\n${turnSysLayers.volatile}`
+        : turnSysLayers.stable;
+      const estimatedTokens = this.estimateTokens(loopState.messages, turnSystem, turnToolDefs);
       if (
         !loopState.hasAttemptedReactiveCompact &&
         estimatedTokens > MAX_CONTEXT_TOKENS * LADDER_MICRO
@@ -413,7 +416,10 @@ export class QueryEngine {
         }
       }
 
-      const turnResult = await this.executeTurn(loopState, toolContext, canUseToolFn);
+      const turnResult = await this.executeTurn(loopState, toolContext, canUseToolFn, {
+        toolDefs: turnToolDefs,
+        sysLayers: turnSysLayers,
+      });
 
       for (const event of turnResult.events) {
         yield event;
@@ -507,9 +513,14 @@ export class QueryEngine {
     });
   }
 
+  /** 请求侧工具集（issue #102-5）：常驻集 × 当前模式过滤，init 事件 / tool schema / system 目录同源 */
+  private activeRequestTools(): Tool[] {
+    return this.modeManager.filterTools(promptTools(this.tools));
+  }
+
   /** 常驻工具的 Anthropic tool schema（issue #44：估算与请求共用同一构造） */
   private buildToolDefs(): Anthropic.Tool[] {
-    const residentTools = promptTools(this.tools);
+    const residentTools = this.activeRequestTools();
     return residentTools.map((t) => {
       const raw = (t.jsonSchema as any) ?? zodToJsonSchema(t.inputSchema);
       // 清理 zod-to-json-schema 添加的多余字段
@@ -545,13 +556,15 @@ export class QueryEngine {
     loopState: LoopState,
     toolContext: ToolUseContext,
     canUseToolFn: CanUseToolFn,
+    // 每 turn 预构建资产（issue #102-4）：submitMessage 与估算共用，缺省自建（测试直连路径）
+    assets?: { toolDefs: Anthropic.Tool[]; sysLayers: { stable: string; volatile: string } },
   ): Promise<{
     stopReason: string | null;
     toolResults: Array<{ tool_use_id: string; content: string; is_error?: boolean }>;
     events: SDKMessage[];
   }> {
     const events: SDKMessage[] = [];
-    const toolDefs: Anthropic.Tool[] = this.buildToolDefs();
+    const toolDefs: Anthropic.Tool[] = assets?.toolDefs ?? this.buildToolDefs();
     // doom 批内去重边界（issue #100）：轮界清一次——同轮（含 early dispatch 与各批次）共享，
     // 相同调用只 feed 一次；跨轮由 submitMessage 的 detector.reset 拦 ≥3 次
     this.doomBatchSigs.clear();
@@ -566,7 +579,7 @@ export class QueryEngine {
     let outputTokens = 0;
 
     // system 分层断点（issue #45）：稳定层带 cache_control，易变层排其后（断点后内容不参与缓存键前缀）
-    const sysLayers = this.buildSystemLayers(toolDefs);
+    const sysLayers = assets?.sysLayers ?? this.buildSystemLayers(toolDefs);
     const systemInput: Anthropic.TextBlockParam[] = [
       { type: "text", text: sysLayers.stable, cache_control: { type: "ephemeral" } },
       ...(sysLayers.volatile ? [{ type: "text" as const, text: sysLayers.volatile }] : []),
@@ -736,6 +749,19 @@ export class QueryEngine {
       if (calls.length > 0) stopReason = "tool_use";
     }
 
+    // 流正常结束但无 finish_reason / message_delta（issue #102）：
+    // OpenAI 缺 finish_reason 时 stopReason 保持 null，此前被 submitMessage
+    // 当 end_turn 走成功语义——按不完整响应处理，不 fireStop 成功
+    if (stopReason === null) {
+      const errMsg = "流结束但未收到 finish_reason（响应不完整），任务未完成";
+      process.stdout.write(chalk.red(`\n❌ ${errMsg}\n`));
+      await Promise.allSettled([...earlyExecutions.values()]);
+      return {
+        stopReason: "error", toolResults,
+        events: [...events, { type: "result", subtype: "error", result: errMsg }],
+      };
+    }
+
     if (toolBuffers.size > 0) {
       const content: Anthropic.ContentBlockParam[] = [];
       if (fullText) content.push({ type: "text", text: fullText });
@@ -743,6 +769,8 @@ export class QueryEngine {
         let input: Record<string, unknown> = {};
         try { input = JSON.parse(buf.inputJson || "{}"); } catch {
           content.push({ type: "tool_use", id: buf.id, name: buf.name, input: {} });
+          // 事件配对（issue #102）：tool_result 必须有对应 tool_use，否则消费端事件流断链
+          events.push({ type: "tool_use", toolName: buf.name, input: {}, toolUseId: buf.id });
           toolResults.push({
             tool_use_id: buf.id,
             content: `错误：工具输入 JSON 解析失败，请检查参数格式`,
@@ -1148,7 +1176,7 @@ export class QueryEngine {
     }
     const stateText =
       (formatToolStateForPrompt(this.toolState) + renderTodoState(appStore.getState().todoState ?? null)) || undefined;
-    const stable = renderSystemPrompt(promptTools(this.tools), {
+    const stable = renderSystemPrompt(this.activeRequestTools(), {
       planSpec,
       rulesText: this.ruleLayers.length ? formatLayersForPrompt(this.ruleLayers) : undefined,
       memoryText: this.memoryEntries.length ? formatMemoriesForPrompt(this.memoryEntries) : undefined,
@@ -1177,6 +1205,35 @@ export class QueryEngine {
     }
   }
 
+  /** messages 字符数增量缓存（issue #102-4）：只在数组尾部追加时增量累加，换引用/缩短则全量重算 */
+  private estMsgCache: { ref: Anthropic.MessageParam[]; count: number; sum: number } | null = null;
+
+  /**
+   * messages 段 JSON 字符数，与 JSON.stringify(messages).length 等值。
+   * 等值拆分：`[` `]` 2 字符 + 各元素字符数之和 + 元素间逗号 (count-1)。
+   * 假设引擎对 messages 只有 push 与整体替换（已确认无 splice/pop/原地改写）。
+   */
+  private messageChars(messages: Anthropic.MessageParam[]): number {
+    const cache = this.estMsgCache;
+    if (cache && cache.ref === messages && cache.count <= messages.length) {
+      for (let i = cache.count; i < messages.length; i++) {
+        const s = JSON.stringify(messages[i]);
+        // 数组内 undefined/function 序列化为 "null"（4 字符）
+        cache.sum += s === undefined ? 4 : s.length;
+      }
+      cache.count = messages.length;
+    } else {
+      let sum = 0;
+      for (let i = 0; i < messages.length; i++) {
+        const s = JSON.stringify(messages[i]);
+        sum += s === undefined ? 4 : s.length;
+      }
+      this.estMsgCache = { ref: messages, count: messages.length, sum };
+    }
+    const { count, sum } = this.estMsgCache!;
+    return 2 + sum + Math.max(count - 1, 0);
+  }
+
   /** 估算上下文 token（issue #44）：messages + system prompt + tool schema 同按 chars/4 口径 */
   private estimateTokens(
     messages: Anthropic.MessageParam[],
@@ -1184,11 +1241,12 @@ export class QueryEngine {
     toolDefs?: Anthropic.Tool[],
   ): number {
     try {
-      const msgChars = JSON.stringify(messages)?.length ?? 0;
+      const msgChars = this.messageChars(messages);
       const sysChars = system?.length ?? 0;
       const toolChars = toolDefs ? (JSON.stringify(toolDefs)?.length ?? 0) : 0;
       return Math.ceil((msgChars + sysChars + toolChars) / 4);
     } catch {
+      this.estMsgCache = null;
       return 0;
     }
   }
@@ -1217,11 +1275,16 @@ export async function* query(params: {
   options?: Partial<QueryEngineConfig>;
 }): AsyncGenerator<SDKMessage, void, unknown> {
   const cwd = params.options?.cwd ?? process.cwd();
+  // 上下文 token 传给路由（issue #102）：resume 会话 initialMessages 可能很大，
+  // 不传则 router 的 easy-ctx>=14k→8b 死分支永远不可达
+  const ctxChars =
+    JSON.stringify(params.initialMessages ?? []).length + params.prompt.length;
   const route = routeTask({
     prompt: params.prompt,
     model: params.options?.model,
     env: process.env,
     workDir: cwd,
+    contextTokens: Math.ceil(ctxChars / 4),
   });
   appendRouteLog(params.prompt, route, cwd);
   resetTurnOps(); // 清理上一入口（single/spec 等）遗留的写操作，避免审查串轮

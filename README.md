@@ -143,6 +143,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **工具执行健壮性（fix #99）**：`withTimeout` 超时即 abort 本次调用的 controller 并附副作用提示（写类操作可能已部分落盘）；工具返回 `isError`/`output.type=error` → `tool_result.is_error=true` + 触发 `PostToolUseFailure`（不再当成功、不快照）；流报错返回前 await 在途早期派发，events/toolResults 不脱钩
 - **doom loop 批内去重（fix #100）**：同一批/轮内相同只读调用只计一次（轮界清批内集合），并行同参检索不再误杀；detector 在 `submitMessage` 入口 reset，跨轮连续 ≥3 同动作仍拦截
 - **hook 信任输入健壮性（fix #101）**：`promptHookTrust` 复用审批的 `parseApprovalAnswer` 首行解析（粘贴 `y⏎杂散内容` 不再误拒）；30s 超时显式移除 data/close/end 三处 stdin listener，不残留吞后续输入
+- **引擎五连修（fix #102）**：router 死分支清理——`contextTokens` 真接进 `routeTask`（resume 大上下文才能命中 `easy-ctx>=14k→8b`），删永远不可达的 `并发>1→8b` 分支；输入 JSON 非法的 tool_use 同步补发 `tool_use` 事件（与后续 `tool_result` 配对，消费端事件流不断链）；流结束缺 `finish_reason` → `stopReason=error` + 单条 error result（不再被当成功）；`estimateTokens` 改 messages 段增量缓存（数组尾部追加只序列化新增，换引用/缩短全量重算，结果与全量 `JSON.stringify` 等值）且每 turn 只构建一次 tool schema/system 分层（估算与请求共用）；请求侧工具集统一 `activeRequestTools()`（`modeManager.filterTools(promptTools(tools))`）——init 事件、请求 `tools`、system 工具目录三处同源，plan 模式下模型不再看到 Write/Edit/Bash
 - **变更史注入（Context Lineage）**：`git log` 近 30 条 → 模型压成短摘要 → `.tupigcode/cache/lineage.json` 缓存（HEAD 变更才重算），以「## 近期变更」注入 system prompt 尾部；预算截断取最近（`TUPIG_LINEAGE_MAX_CHARS` 默认 800）；无 git/无模型/超时（5s）静默跳过零影响
 - **`/compact [focusing on X]` 手动压缩**：走既有压缩流水线（snip → micro → collapse → LLM 摘要），支持焦点指令透传；`/context` 分段明细（系统提示/对话消息/工具结果/工具 schema/记忆 各段 token+条数，求和=总量，估算 chars/4）
 - **内置技能包（10 个）**：git-workflow / git-log / gitingest / shell-command-engager / code-review / debugging / test-first / docs-sync / release-check / refactor-safe，`src/knowledge/skills/` 静态装载（build 拷贝到 dist），用户 `.tupigcode/skills/` 同名覆盖、无效回落内置，三重门禁与 3000 字目录预算对内置同样生效
@@ -356,12 +357,12 @@ gameqa 环境变量见上文 [gameqa 节](#-gameqa--unity-自动化测试平台)
 ## 🧪 测试与 CI
 
 ```bash
- npm test              # = npx vitest run，119 文件 / 1053 用例
+ npm test              # = npx vitest run，120 文件 / 1060 用例
  npx tsc --noEmit      # 类型门槛
  npm run build         # 构建门槛（含 gameqa 静态资源拷贝 + 入口 chmod）
  ```
 
-用例分组：`n1~n12`（编辑/会话/沙箱/子代理/规格/RepoMap/harness…）、`e1~e92`
+用例分组：`n1~n12`（编辑/会话/沙箱/子代理/规格/RepoMap/harness…）、`e1~e93`
 （Provider/配置/护栏/容错/工具/并行/路由/优化/图像输入/模糊编辑/错误分类/MCP）、`f*`（压缩/权限）、`i1~i4`
 （记忆/技能/hooks/反思）、`g1~g7`（gameqa store/服务/内置执行器/Unity 真执行全链路/
 airtest·性能·AI 集成/TLS·CLI/轻量报告/Allure 报告）、`proxy-*`（三协议转换/SSE/流式 usage）、`smoke`、`cli`、`ctx10m`。
