@@ -241,7 +241,7 @@ export class QueryEngine {
     try {
       const mcp = await connectMcpServers(
         this.config.cwd,
-        (msg) => process.stderr.write(`⚠️  ${msg}\n`),
+        (msg) => process.stderr.write(`警告：${msg}\n`),
         (tools) => this.applyMcpTools(tools), // list_changed 动态刷新（issue #59）
       );
       this.applyMcpTools(mcp.tools);
@@ -372,7 +372,7 @@ export class QueryEngine {
           appStore.setState((st) => ({ ...st, compactionCount: st.compactionCount + 1 }));
           const mLine = formatCompactionLine();
           if (mLine) {
-            process.stdout.write(chalk.gray(`\n♻️  已压缩（模型请求${focus ? `，焦点：${focus}` : ""}）：${mLine}\n`));
+            process.stdout.write(chalk.gray(`\n已压缩（模型请求${focus ? `，焦点：${focus}` : ""}）：${mLine}\n`));
           }
         }
         await fireCompactPost(undefined, hctx, "model");
@@ -410,7 +410,7 @@ export class QueryEngine {
             loopState.compacted = true;
             appStore.setState((s) => ({ ...s, compactionCount: s.compactionCount + 1 }));
             const cLine = formatCompactionLine();
-            if (cLine) process.stdout.write(chalk.gray(`\n♻️  已压缩：${cLine}\n`));
+            if (cLine) process.stdout.write(chalk.gray(`\n已压缩：${cLine}\n`));
           }
           await fireCompactPost(undefined, hctx, "auto");
         }
@@ -620,7 +620,7 @@ export class QueryEngine {
           process.stdout.write("\n");
         };
         for await (const event of streamWithFailover(stream, fbStream, this.fallbackLabel, (l) => {
-          process.stdout.write(chalk.yellow(`\n⚡ 本地推理故障，已回退到 ${l}\n`));
+          process.stdout.write(chalk.yellow(`\n本地推理故障，已回退到 ${l}\n`));
           this.trajectory?.recordError(`基础设施故障，回退 ${l}`);
         }, onFailoverReset)) {
           // 中断（issue #98）：signal 已 abort 立即停止消费，mock/未接 signal 链路同样生效
@@ -632,7 +632,7 @@ export class QueryEngine {
               break;
             case "tool_use_start":
               toolBuffers.set(event.id, { id: event.id, name: event.name, inputJson: "" });
-              process.stdout.write(chalk.yellow(`\n🔧 ${event.name} `));
+              process.stdout.write(chalk.yellow(`\n▸ ${event.name} `));
               break;
             case "tool_use_delta": {
               const buf = toolBuffers.get(event.id);
@@ -682,11 +682,11 @@ export class QueryEngine {
           const next = nextOutputTokenEscalation(loopState.maxOutputTokensOverride);
           if (next !== null && attempt < MAX_OUTPUT_TOKEN_ESCALATION.length - 1) {
             loopState.maxOutputTokensOverride = next;
-            process.stdout.write(chalk.yellow(`\n⚠️  输出被 max_tokens 截断，正在以 ${next} 重试...\n`));
+            process.stdout.write(chalk.yellow(`\n输出被 max_tokens 截断，正在以 ${next} 重试...\n`));
             continue;
           }
           const errMsg = `输出被 max_tokens 截断（${loopState.maxOutputTokensOverride}），升级重试已耗尽，任务未完成`;
-          process.stdout.write(chalk.red(`\n❌ ${errMsg}\n`));
+          process.stdout.write(chalk.red(`\n✗ ${errMsg}\n`));
           // 错误返回前等在途早期派发落地（issue #99）：否则后台结果与 events 脱钩
           await Promise.allSettled([...earlyExecutions.values()]);
           return {
@@ -705,7 +705,7 @@ export class QueryEngine {
           const next = nextOutputTokenEscalation(loopState.maxOutputTokensOverride);
           if (next !== null) {
             loopState.maxOutputTokensOverride = next;
-            process.stdout.write(chalk.yellow(`\n⚠️  输出 Token 超限，正在以 ${loopState.maxOutputTokensOverride} 重试...\n`));
+            process.stdout.write(chalk.yellow(`\n输出 Token 超限，正在以 ${loopState.maxOutputTokensOverride} 重试...\n`));
             continue;
           }
         }
@@ -723,13 +723,13 @@ export class QueryEngine {
             this.trajectory?.recordError(`上下文溢出，自动压缩恢复（第 ${this.overflowRecovery.attempts} 次）`);
             await fireCompactPost(undefined, hctx, "auto");
             const oLine = formatCompactionLine();
-            process.stdout.write(chalk.yellow(`\n⚠️  上下文超限，已自动压缩并重试（${this.overflowRecovery.attempts}/${MAX_OVERFLOW_RETRIES}）${oLine ? `：${oLine}` : ""}...\n`));
+            process.stdout.write(chalk.yellow(`\n上下文超限，已自动压缩并重试（${this.overflowRecovery.attempts}/${MAX_OVERFLOW_RETRIES}）${oLine ? `：${oLine}` : ""}...\n`));
             attempt--; // 溢出恢复不消耗 max_tokens 升级额度（互不干扰）
             continue;
           }
         }
 
-        process.stdout.write(chalk.red(`\n❌ API 错误：${err?.message || err}\n`));
+        process.stdout.write(chalk.red(`\nAPI 错误：${err?.message || err}\n`));
         // 错误返回前等在途早期派发落地（issue #99）：异常进 recordToolFailure 写的仍是有效数组
         await Promise.allSettled([...earlyExecutions.values()]);
         return {
@@ -744,7 +744,7 @@ export class QueryEngine {
       for (const c of calls) {
         const id = `xmtool_${Date.now()}_${toolBuffers.size}`;
         toolBuffers.set(id, { id, name: c.name, inputJson: c.parseError ? "___bad_json___" : JSON.stringify(c.input) });
-        process.stdout.write(chalk.yellow(`\n🔧 ${c.name} `));
+        process.stdout.write(chalk.yellow(`\n▸ ${c.name} `));
       }
       if (calls.length > 0) stopReason = "tool_use";
     }
@@ -754,7 +754,7 @@ export class QueryEngine {
     // 当 end_turn 走成功语义——按不完整响应处理，不 fireStop 成功
     if (stopReason === null) {
       const errMsg = "流结束但未收到 finish_reason（响应不完整），任务未完成";
-      process.stdout.write(chalk.red(`\n❌ ${errMsg}\n`));
+      process.stdout.write(chalk.red(`\n✗ ${errMsg}\n`));
       await Promise.allSettled([...earlyExecutions.values()]);
       return {
         stopReason: "error", toolResults,
@@ -858,7 +858,7 @@ export class QueryEngine {
     events: any[],
     toolResults: Array<{ tool_use_id: string; content: string; is_error?: boolean }>,
   ): void {
-    process.stdout.write(chalk.red(`\n❌ ${errMsg}\n`));
+    process.stdout.write(chalk.red(`\n✗ ${errMsg}\n`));
     if (!toolResults.some((r) => r.tool_use_id === buf.id)) {
       toolResults.push({ tool_use_id: buf.id, content: errMsg, is_error: true });
       events.push({ type: "tool_result", toolUseId: buf.id, content: errMsg, isError: true });
@@ -986,7 +986,7 @@ export class QueryEngine {
       if (permission.behavior === "deny") {
         const msg = permission.message || "已拒绝";
         firePerm("deny", permSource);
-        process.stdout.write(chalk.red(`\n🚫 ${msg}\n`));
+        process.stdout.write(chalk.red(`\n✗ ${msg}\n`));
         toolResults.push({ tool_use_id: buf.id, content: msg, is_error: true });
         events.push({ type: "tool_result", toolUseId: buf.id, content: msg, isError: true });
         return;
@@ -1016,7 +1016,7 @@ export class QueryEngine {
 
       if (hookResult.block) {
         const msg = hookResult.message || "已被 Hook 阻断";
-        process.stdout.write(chalk.red(`\n🚫 ${msg}\n`));
+        process.stdout.write(chalk.red(`\n✗ ${msg}\n`));
         toolResults.push({ tool_use_id: buf.id, content: msg, is_error: true });
         events.push({ type: "tool_result", toolUseId: buf.id, content: msg, isError: true });
         return;
@@ -1026,7 +1026,7 @@ export class QueryEngine {
         const parsed = tool.inputSchema.safeParse(input);
         if (!parsed.success) {
           const errMsg = `输入校验失败：${parsed.error.errors.map((e: any) => e.message).join(", ")}`;
-          process.stdout.write(chalk.red(`\n❌ ${errMsg}\n`));
+          process.stdout.write(chalk.red(`\n✗ ${errMsg}\n`));
           toolResults.push({ tool_use_id: buf.id, content: errMsg, is_error: true });
           events.push({ type: "tool_result", toolUseId: buf.id, content: errMsg, isError: true });
           return;
@@ -1041,7 +1041,7 @@ export class QueryEngine {
           this.doomBatchSigs.add(doomSig);
           if (this.doomDetector.feed(doomSig)) {
             const errMsg = "检测到连续重复动作（doom loop），已中断。请换一种方式完成任务。";
-            process.stdout.write(chalk.red(`\n🛑 ${errMsg}\n`));
+            process.stdout.write(chalk.red(`\n✗ ${errMsg}\n`));
             toolResults.push({ tool_use_id: buf.id, content: errMsg, is_error: true });
             events.push({ type: "tool_result", toolUseId: buf.id, content: errMsg, isError: true });
             this.trajectory?.recordError(errMsg);
@@ -1053,7 +1053,7 @@ export class QueryEngine {
         this.trajectory?.recordToolUse(buf.name, input, buf.id);
         const toolStartTime = Date.now();
 
-        process.stdout.write(chalk.gray("⏳ "));
+        process.stdout.write(chalk.gray("… "));
         let result;
         // per-call AbortController（issue #99）：超时即 abort，工具读 context.abortController 可真取消
         const callAc = new AbortController();
@@ -1084,7 +1084,7 @@ export class QueryEngine {
             toolName: buf.name, input, output: errMsg,
             durationMs: Date.now() - toolStartTime,
           }, { turnNumber: loopState.turnCount, sessionId: appStore.getState().sessionId });
-          process.stdout.write(chalk.red(`\n❌ ${errMsg}\n`));
+          process.stdout.write(chalk.red(`\n✗ ${errMsg}\n`));
           toolResults.push({ tool_use_id: buf.id, content: errMsg, is_error: true });
           events.push({ type: "tool_result", toolUseId: buf.id, content: errMsg, isError: true });
           this.trajectory?.recordError(errMsg);
@@ -1108,7 +1108,7 @@ export class QueryEngine {
         const toolDuration = Date.now() - toolStartTime;
         this.trajectory?.recordToolResult(buf.id, resultStr, toolErr, toolDuration);
 
-        process.stdout.write(toolErr ? chalk.red(`❌（${resultStr.length} 字符）\n`) : chalk.green(`✅（${resultStr.length} 字符）\n`));
+        process.stdout.write(toolErr ? chalk.red(`✗（${resultStr.length} 字符）\n`) : chalk.green(`✓（${resultStr.length} 字符）\n`));
 
         if (toolErr) {
           // 工具级错误（issue #99）：错误结果同样进 PostToolUseFailure（含 durationMs）

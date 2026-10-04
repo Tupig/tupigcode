@@ -94,9 +94,9 @@ describe("renderDoctor", () => {
       { id: "b", level: "warn", label: "警告项", detail: "d" },
       { id: "c", level: "error", label: "错误项", detail: "e" },
     ]);
-    expect(text).toContain("✅");
-    expect(text).toContain("⚠️");
-    expect(text).toContain("❌");
+    expect(text).toContain("✓");
+    expect(text).toContain("!");
+    expect(text).toContain("✗");
     expect(text).toMatch(/1 error|1 个错误/);
   });
 });

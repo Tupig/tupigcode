@@ -226,11 +226,11 @@ export const ComplexityAnalysisTool = defineTool({
 
       // 复杂度评级
       if (metrics.cyclomatic <= 10) {
-        lines2.push(`  评级：简单 ✅`);
+        lines2.push(`  评级：简单`);
       } else if (metrics.cyclomatic <= 20) {
-        lines2.push(`  评级：中等 ⚠️`);
+        lines2.push(`  评级：中等`);
       } else {
-        lines2.push(`  评级：复杂 ❌（建议重构）`);
+        lines2.push(`  评级：复杂（建议重构）`);
       }
 
       return lines2.join("\n");

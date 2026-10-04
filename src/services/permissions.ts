@@ -344,7 +344,7 @@ async function promptUserDecisionLocked(
   const inputStr = JSON.stringify(input, null, 2);
   const truncated = inputStr.length > 500 ? inputStr.slice(0, 500) + "\n..." : inputStr;
 
-  console.log(chalk.yellow(`\n⚠️  ${toolName}`));
+  console.log(chalk.yellow(`\n需要审批：${toolName}`));
   // 审批 diff 预览（issue #54）：写工具渲染真实变更，其余回退 JSON 截断
   const preview = await buildApprovalPreview(toolName, input);
   if (preview) printPreview(preview);

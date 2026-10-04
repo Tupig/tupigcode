@@ -49,7 +49,7 @@ const VERSION: string = (requirePkg("../package.json") as { version: string }).v
 function printBanner(): void {
   console.log(chalk.cyan.bold(`
 ╔══════════════════════════════════════════╗
-║     🤖 TupigCode v${VERSION}              ║
+║     TupigCode v${VERSION}                ║
 ║     AI 编程助手（Claude Code 架构）       ║
 ╚══════════════════════════════════════════╝
 `));
@@ -96,7 +96,7 @@ function handleSDKMessage(msg: SDKMessage): void {
     case "tool_result": break;
     case "result":
       if (msg.subtype === "error") {
-        process.stdout.write(chalk.red(`\n❌ ${msg.result}\n`));
+        process.stdout.write(chalk.red(`\n✗ ${msg.result}\n`));
       }
       break;
     case "system":
@@ -115,7 +115,7 @@ async function startREPL(): Promise<void> {
 
   // 启动检测 Ctrl+C 打断的孤儿会话（issue #27）
   const notice = formatInterruptedNotice(listInterruptedSessions(appStore.getState().workDir));
-  if (notice) console.log(chalk.yellow(`\n⚡ ${notice}\n`));
+  if (notice) console.log(chalk.yellow(`\n${notice}\n`));
 
   const rl: Interface = createInterface({
     input: process.stdin,
@@ -128,7 +128,7 @@ async function startREPL(): Promise<void> {
   const onSignal = () => {
     const already = activeTurnInterrupted(); // 请求前状态：首按 false、二按 true
     if (interruptActiveTurn() && !already) {
-      console.log(chalk.yellow("\n⏹ 已请求中断，正在结束当前任务…（再次 Ctrl+C 强制退出）"));
+      console.log(chalk.yellow("\n已请求中断，正在结束当前任务…（再次 Ctrl+C 强制退出）"));
       return;
     }
     rescueSessionSync(appStore.getState().workDir, sessionId, sessionHistory as unknown[]);
@@ -145,7 +145,7 @@ async function startREPL(): Promise<void> {
       sessionId: appStore.getState().sessionId,
     });
     process.stdout.write(
-      chalk.gray(`\n⏰ 输入已空闲 ${Math.round(idleNotifyMs / 60_000)} 分钟（TUPIG_IDLE_NOTIFY_MS 可调）\n`),
+      chalk.gray(`\n输入已空闲 ${Math.round(idleNotifyMs / 60_000)} 分钟（TUPIG_IDLE_NOTIFY_MS 可调）\n`),
     );
     rl.prompt();
   });
@@ -259,7 +259,7 @@ async function startREPL(): Promise<void> {
       const memories = loadMemoriesSync(workDir).map((m) => JSON.stringify(m));
       const bd = contextBreakdown({ systemPrompt, messages: sessionHistory, toolSchemas, memories });
       const pad = (n: number) => String(n).padStart(7);
-      console.log(chalk.cyan("\n📊 上下文占用（估算，chars/4）"));
+      console.log(chalk.cyan("\n上下文占用（估算，chars/4）"));
       for (const seg of bd.segments) {
         const cnt = seg.count !== undefined ? `（${seg.count} ${seg.id === "tool_results" ? "块" : seg.id === "system" ? "条" : "项"}）` : "";
         console.log(chalk.gray(`  ${seg.label.padEnd(11)}${pad(seg.tokens)} tokens${cnt}`));
@@ -722,7 +722,7 @@ async function runTurnDiffReview(ops: FileOp[], rl: Interface): Promise<void> {
   const firstOp = new Map<string, FileOp>();
   for (const op of ops) if (!firstOp.has(op.path)) firstOp.set(op.path, op);
 
-  console.log(chalk.cyan(`\n📋 本轮 ${plan.files.length} 个文件改动 — diff 审查`));
+  console.log(chalk.cyan(`\n本轮 ${plan.files.length} 个文件改动 — diff 审查`));
   for (const f of plan.files) {
     console.log(chalk.gray(`  ${f.op === "create" ? "新增" : "修改"} ${rel(f.path)}（${f.stat}）`));
   }
@@ -822,7 +822,7 @@ function main(): void {
   const program = new Command();
   program
     .name("tupigcode")
-    .description("🤖 TupigCode — AI 编程助手（Claude Code 架构）")
+    .description("TupigCode — AI 编程助手（Claude Code 架构）")
     .version(VERSION);
 
   program

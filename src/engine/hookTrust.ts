@@ -124,7 +124,7 @@ export async function promptHookTrust(h: ShellHookConfig): Promise<boolean> {
       process.stdin.pause();
       resolve(r);
     };
-    console.log(chalk.yellow("\n🔒 hook 首次触发，需要信任确认（TOFU，规则变更会重新询问）"));
+    console.log(chalk.yellow("\nhook 首次触发，需要信任确认（TOFU，规则变更会重新询问）"));
     console.log(chalk.gray(`event: ${h.event}\ncommand: ${h.command}`));
     process.stdout.write(chalk.cyan("允许该 hook 持续执行？(y/N) "));
     process.stdin.setEncoding("utf-8");

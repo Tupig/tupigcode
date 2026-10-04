@@ -168,7 +168,7 @@ export function runDoctor(workDir: string, env: NodeJS.ProcessEnv = process.env)
 }
 
 export function renderDoctor(results: CheckResult[]): string {
-  const symbol: Record<CheckLevel, string> = { ok: "✅", warn: "⚠️", error: "❌" };
+  const symbol: Record<CheckLevel, string> = { ok: "✓", warn: "!", error: "✗" };
   const order: Record<CheckLevel, number> = { error: 0, warn: 1, ok: 2 };
   const sorted = [...results].sort((a, b) => order[a.level] - order[b.level]);
   const counts = { error: 0, warn: 0, ok: 0 };

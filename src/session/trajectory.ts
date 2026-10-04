@@ -287,8 +287,8 @@ export class TrajectoryReplayer {
           lines.push("");
           break;
         case "tool_result":
-          const isError = event.data.isError ? " ❌" : "";
-          lines.push(`### [${time}] 工具结果${isError}（${event.duration}ms）`);
+          const errMark = event.data.isError ? "，失败" : "";
+          lines.push(`### [${time}] 工具结果（${event.duration}ms${errMark}）`);
           lines.push("```");
           lines.push((event.data.result as string).slice(0, 500));
           lines.push("```");

@@ -29,7 +29,7 @@ export const QuestionTool = buildTool<string>({
       return { data: "错误：当前为非交互环境，无法提问。请基于已有信息继续，或在回复中直接给出你的假设。", isError: true };
     }
 
-    console.log(`\n❓ ${input.question}`);
+    console.log(`\n问题：${input.question}`);
     if (input.options?.length) {
       input.options.forEach((o: string, i: number) => console.log(`  ${i + 1}. ${o}`));
     }

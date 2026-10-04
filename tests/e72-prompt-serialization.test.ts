@@ -39,7 +39,7 @@ describe("审批串行化（#64）", () => {
       const p2 = promptUserDecision("Write", { file_path: "/tmp/x" });
       await sleep(40); // 若串行，此刻第二个还没轮到
       const promptsAfterFirst = countPrompts(logs);
-      expect(promptsAfterFirst).toBe(1); // 只有第一个的 ⚠️ 已打印
+      expect(promptsAfterFirst).toBe(1); // 只有第一个的审批提示已打印
 
       process.stdin.emit("data", "y\n"); // 答第一个
       expect(await p1).toBe("allow");
@@ -108,5 +108,5 @@ describe("审批串行化（#64）", () => {
 });
 
 function countPrompts(logs: string[]): number {
-  return logs.filter((l) => l.includes("⚠️")).length;
+  return logs.filter((l) => l.includes("需要审批：")).length;
 }

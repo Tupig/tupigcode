@@ -293,7 +293,7 @@ function cmdDoctor(): number {
     if (md && existsSync(join(models(), md))) process.stdout.write(`  ✓ 当前模型: ${cur} (${md})\n`);
     else { process.stdout.write(`  ✗ 当前模型目录不存在: ${md ?? cur}\n`); errors++; }
   } else {
-    process.stdout.write("  ⚠ 未设置当前模型\n");
+    process.stdout.write("  ! 未设置当前模型\n");
   }
   process.stdout.write("\n");
 
@@ -308,7 +308,7 @@ function cmdDoctor(): number {
   process.stdout.write("6. 检查日志文件\n");
   for (const lf of [join(logs(), "server.log"), join(logs(), "unified_proxy.log")]) {
     if (existsSync(lf)) process.stdout.write(`  ✓ ${basename(lf)} (${humanSize(lf)})\n`);
-    else process.stdout.write(`  ⚠ ${basename(lf)} (不存在)\n`);
+    else process.stdout.write(`  ! ${basename(lf)} (不存在)\n`);
   }
   process.stdout.write("\n");
 
