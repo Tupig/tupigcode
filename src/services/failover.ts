@@ -26,7 +26,7 @@ export function resolveFallback(env: NodeJS.ProcessEnv = process.env): "anthropi
 
 /**
  * 兜底请求的模型名（issue #98）：config.fallbackModel 优先，缺省按兜底 provider
- * 解析默认云模型——本地模型名（14b/8b）打到云端必 404，兜底不能沿用主源模型。
+ * 解析默认云模型——本地模型名（14b/8b）发往云端必 404，兜底不能沿用主源模型。
  * 对齐 router.ts：anthropic → TUPIG_CLOUD_MODEL || claude-sonnet-4；openai → OPENAI_MODEL 兜底。
  */
 export function resolveFallbackModel(
@@ -53,7 +53,7 @@ export async function* streamWithFailover(
     if ((err as any)?.name === "AbortError" || (err as any)?.code === "ABORT_ERR") throw err;
     if (!isInfraError(err) || !fallback || !label) throw err;
     // 部分产出后切换（issue #97）：先让消费方回滚已累计的文本/工具缓冲，
-    // 再重放兜底流——否则 fullText 重复、半个 tool_use 变幽灵块
+    // 再重放兜底流——否则 fullText 重复、残留的半个 tool_use 无法配对
     await onReset?.();
     onFallback?.(label);
     yield* fallback();

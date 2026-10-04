@@ -116,14 +116,12 @@ export async function autoCommit(
   if (!(await isGitRepo(workDir))) return null;
 
   try {
-    // 暂存文件
     if (files && files.length > 0) {
       await execFileAsync("git", ["add", ...files], { cwd: workDir, timeout: 10000 });
     } else {
       await execFileAsync("git", ["add", "-A"], { cwd: workDir, timeout: 10000 });
     }
 
-    // 检查是否有暂存的变更
     const { stdout: diffCached } = await execFileAsync(
       "git",
       ["diff", "--cached", "--stat"],
@@ -132,14 +130,12 @@ export async function autoCommit(
 
     if (!diffCached.trim()) return null;
 
-    // 提交
     await execFileAsync(
       "git",
       ["commit", "-m", message, "--allow-empty"],
       { cwd: workDir, timeout: 10000 },
     );
 
-    // 获取提交信息
     const { stdout: hash } = await execFileAsync(
       "git",
       ["rev-parse", "HEAD"],

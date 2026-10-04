@@ -238,7 +238,7 @@ export async function* withIdleWatchdog(
       yield res.value;
     }
   } finally {
-    // 不 await：async generator 的 return() 排在 pending next() 之后，await 会跟挂
+    // 不 await：async generator 的 return() 排在 pending next() 之后，await 会阻塞当前流
     void Promise.resolve(it.return?.(undefined as never)).catch(() => {});
   }
 }

@@ -64,16 +64,13 @@ export function isToolAvailable(
 ): boolean {
   const config = getModeConfig(mode);
 
-  // 合并自定义配置
   const allowed = customAllowed?.length ? customAllowed : config.allowedTools;
   const disabled = customDisabled?.length ? customDisabled : config.disabledTools;
 
-  // 如果有白名单，检查是否在白名单中
   if (allowed.length > 0) {
     return allowed.includes(tool.name);
   }
 
-  // 如果在黑名单中，不可用
   if (disabled.includes(tool.name)) {
     return false;
   }

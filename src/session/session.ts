@@ -41,7 +41,7 @@ export async function saveSessionMessages(
   );
 }
 
-/** SIGINT/SIGTERM 同步抢救（issue #27）：不等 Promise，直接同步落盘；空会话不写 */
+/** SIGINT/SIGTERM 同步落盘（issue #27）：不等 Promise，直接同步写盘；空会话不写 */
 export function rescueSessionSync(workDir: string, sessionId: string, messages: unknown[]): void {
   try {
     if (!messages || messages.length === 0) return;
@@ -53,7 +53,7 @@ export function rescueSessionSync(workDir: string, sessionId: string, messages: 
       JSON.stringify({ updatedAt: new Date().toISOString(), messages, interrupted: true }),
     );
   } catch {
-    /* 抢救失败也不能在信号处理里抛 */
+    /* 落盘失败也不能在信号处理里抛 */
   }
 }
 

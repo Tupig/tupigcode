@@ -129,7 +129,6 @@ export const ListFunctionsTool = defineTool({
           if (match) {
             const name = match[1] || match[2] || "anonymous";
 
-            // 应用过滤模式
             if (input.pattern && !name.match(input.pattern)) continue;
 
             functions.push({ name, line: i + 1, type });
@@ -240,8 +239,6 @@ export const ComplexityAnalysisTool = defineTool({
   },
 });
 
-// 辅助函数
-
 function getFunctionPatterns(ext: string): Array<{ regex: RegExp; type: string }> {
   const patterns: Record<string, Array<{ regex: RegExp; type: string }>> = {
     ".ts": [
@@ -338,7 +335,6 @@ function analyzeComplexity(lines: string[]): {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // 计算圈复杂度
     if (
       trimmed.match(/\b(if|else if|elif)\b/) ||
       trimmed.match(/\b(case|when)\b/) ||
@@ -348,13 +344,11 @@ function analyzeComplexity(lines: string[]): {
       cyclomatic++;
     }
 
-    // 计算嵌套深度
     const openBraces = (line.match(/{/g) || []).length;
     const closeBraces = (line.match(/}/g) || []).length;
     currentNesting += openBraces - closeBraces;
     if (currentNesting > maxNesting) maxNesting = currentNesting;
 
-    // 识别函数
     const funcMatch = line.match(/(?:function|def|fn)\s+(\w+)/);
     if (funcMatch) {
       if (currentFunctionName && currentFunctionLength > longestFunction.length) {
@@ -371,7 +365,6 @@ function analyzeComplexity(lines: string[]): {
     }
   }
 
-  // 检查最后一个函数
   if (currentFunctionName && currentFunctionLength > longestFunction.length) {
     longestFunction = { name: currentFunctionName, length: currentFunctionLength };
   }

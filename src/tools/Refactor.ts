@@ -67,7 +67,6 @@ export const RenameSymbolTool = defineTool({
         return `预览重命名「${input.oldName}」→「${input.newName}」：\n\n${lines.join("\n")}\n\n共 ${lines.length} 处引用，涉及 ${changedFiles} 个文件`;
       }
 
-      // 执行重命名
       for (const match of matches) {
         const [filePath] = match.split(":");
         if (filePath.includes("node_modules") || filePath.includes(".git")) continue;
@@ -124,10 +123,8 @@ export const ExtractFunctionTool = defineTool({
 
       const selectedLines = lines.slice(input.startLine - 1, input.endLine);
 
-      // 检测缩进
       const indent = selectedLines[0].match(/^(\s*)/)?.[1] ?? "";
 
-      // 构建函数
       const params = input.params?.join(", ") ?? "";
       const functionCode = [
         `${indent}function ${input.functionName}(${params}) {`,
@@ -136,7 +133,6 @@ export const ExtractFunctionTool = defineTool({
         "",
       ].join("\n");
 
-      // 替换原代码为函数调用
       const callCode = `${indent}${input.functionName}(${params});`;
       const newLines = [
         ...lines.slice(0, input.startLine - 1),
@@ -144,7 +140,6 @@ export const ExtractFunctionTool = defineTool({
         ...lines.slice(input.endLine),
       ];
 
-      // 在文件顶部添加函数定义
       const newContent = newLines.join("\n");
       const insertPos = findInsertPosition(newContent);
       const finalContent =
@@ -187,12 +182,10 @@ export const MoveFileTool = defineTool({
     }
 
     try {
-      // 移动文件
       await rename(src, dest);
 
       const lines: string[] = [`已移动 ${input.source} → ${input.destination}`];
 
-      // 更新导入引用
       if (updateImports) {
         const updated = await updateImportReferences(ctx.workDir, src, dest);
         if (updated > 0) {
@@ -229,7 +222,6 @@ export const InlineVariableTool = defineTool({
       const content = await readFile(resolved, "utf-8");
       const lines = content.split("\n");
 
-      // 查找变量声明
       let declarationLine = -1;
       let variableValue = "";
 
@@ -249,7 +241,6 @@ export const InlineVariableTool = defineTool({
         return `未找到变量「${input.variableName}」的声明`;
       }
 
-      // 替换所有引用
       let replacedCount = 0;
       const newLines = lines.map((line, i) => {
         if (i === declarationLine) return null; // 删除声明行
@@ -263,7 +254,6 @@ export const InlineVariableTool = defineTool({
         return newLine;
       });
 
-      // 写入文件
       const newContent = newLines.filter((l) => l !== null).join("\n");
       await writeFile(resolved, newContent, "utf-8");
 
@@ -296,7 +286,6 @@ export const ExtractConstantTool = defineTool({
     try {
       const content = await readFile(resolved, "utf-8");
 
-      // 添加常量声明到文件顶部
       const constantDecl = `const ${input.constantName} = ${input.value};\n`;
       const newContent = constantDecl + content;
 
@@ -315,8 +304,6 @@ export const ExtractConstantTool = defineTool({
   },
 });
 
-// 辅助函数
-
 function getFileExtension(type: string): string {
   const extensions: Record<string, string> = {
     ts: "ts",
@@ -334,7 +321,6 @@ function escapeRegex(str: string): string {
 }
 
 function findInsertPosition(content: string): number {
-  // 在 import 语句之后、第一行代码之前插入
   const lines = content.split("\n");
   let lastImport = -1;
 
@@ -346,7 +332,6 @@ function findInsertPosition(content: string): number {
 
   if (lastImport === -1) return 0;
 
-  // 计算到最后一行 import 的字符位置
   let pos = 0;
   for (let i = 0; i <= lastImport; i++) {
     pos += lines[i].length + 1; // +1 for newline

@@ -212,7 +212,7 @@ export class HookSystem {
       return true;
     });
 
-    // 并行执行（issue #49）：不再串行叠加超时，单点异常吞掉不拖累他人
+    // 并行执行（issue #49）：不串行叠加超时；单点异常隔离，不影响其他 hook
     const results = await Promise.all(
       matching.map(async (m) => {
         try {

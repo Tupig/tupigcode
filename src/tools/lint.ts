@@ -70,7 +70,6 @@ function detectLinter(workDir: string): LinterDef | null {
     existsSync(join(workDir, "tsconfig.json")) ||
     existsSync(join(workDir, "package.json"))
   ) {
-    // 检查是否安装了 tsc
     try {
       const pkg = require(join(workDir, "package.json"));
       const hasTsc =

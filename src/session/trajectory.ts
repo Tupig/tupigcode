@@ -302,7 +302,6 @@ export class TrajectoryReplayer {
       }
     }
 
-    // 统计信息
     const stats = this.getStats();
     lines.push("## 统计");
     lines.push(`- 总事件数：${stats.totalEvents}`);

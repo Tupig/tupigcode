@@ -100,8 +100,7 @@ export const WebFetchTool = defineTool({
 
       let content = await response.text();
 
-      // 简单的 HTML 转文本
-      if (contentType.includes("text/html")) {
+          if (contentType.includes("text/html")) {
         content = htmlToText(content);
       }
 
@@ -133,7 +132,6 @@ export const WebFetchTool = defineTool({
 function parseSearchResults(html: string, maxResults: number): Array<{ title: string; url: string; snippet: string }> {
   const results: Array<{ title: string; url: string; snippet: string }> = [];
 
-  // 简单的正则解析
   const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>(.*?)<\/a>/g;
 
   let match;
@@ -179,14 +177,12 @@ function stripHtml(html: string): string {
  * HTML 转纯文本
  */
 function htmlToText(html: string): string {
-  // 移除 script 和 style
   let text = html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
     .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
 
-  // 移除标签
   text = text
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
@@ -194,7 +190,6 @@ function htmlToText(html: string): string {
     .replace(/<\/h[1-6]>/gi, "\n\n")
     .replace(/<[^>]*>/g, "");
 
-  // 解码 HTML 实体
   text = text
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
@@ -203,7 +198,6 @@ function htmlToText(html: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ");
 
-  // 清理多余空白
   text = text
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]+/g, " ")

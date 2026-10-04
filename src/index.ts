@@ -123,8 +123,8 @@ async function startREPL(): Promise<void> {
     prompt: chalk.green("❯ "),
   });
 
-  // SIGINT 同步抢救（issue #27）：不等 Promise，直接落盘 interrupted 标记
-  // turn 进行中 → interrupt() 优雅中断，不直接退出；空闲 → 抢救 + 退出（issue #98）
+  // SIGINT 同步落盘（issue #27）：不等 Promise，直接写 interrupted 标记
+  // turn 进行中 → interrupt() 优雅中断，不直接退出；空闲 → 落盘 + 退出（issue #98）
   const onSignal = () => {
     const already = activeTurnInterrupted(); // 请求前状态：首按 false、二按 true
     if (interruptActiveTurn() && !already) {

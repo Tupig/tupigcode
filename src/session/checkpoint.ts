@@ -147,7 +147,7 @@ export async function autoSnapshot(
   const now = Date.now();
   const last = lastAutoAt.get(workDir) ?? 0;
   if (now - last < debounceMs) return null;
-  // 占位前移（issue #92）：await 前锁定窗口，并发调用不再双快照（撞 git index.lock）
+  // 占位前移（issue #92）：await 前锁定窗口，并发调用不再建双快照（避免 git index.lock 冲突）
   lastAutoAt.set(workDir, now);
   return snapshotWithMessages(workDir, label, messages);
 }

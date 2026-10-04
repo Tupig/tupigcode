@@ -187,7 +187,6 @@ export class QueryEngine {
     // 会话身份（issue #92：原恒返回 null 的会话恢复死路径已删）
     this.sessionState = createSessionState(config.sessionId ?? generateSessionId());
 
-    // 初始化轨迹记录器
     if (config.enableTrajectory) {
       this.trajectory = createTrajectoryRecorder(
         this.sessionState.sessionId,
@@ -268,10 +267,8 @@ export class QueryEngine {
     this.doomDetector.reset();
     this.doomBatchSigs.clear();
     reloadShellHooksIfChanged(); // hooks.json 热加载（issue #51）：mtime 变更才重载
-    // 记录用户消息
     this.trajectory?.recordUserMessage(prompt);
 
-    // 检查模式切换命令
     if (prompt === "/plan") {
       const from = this.modeManager.mode;
       this.modeManager.enterPlan("用户切换到 Plan 模式");
@@ -496,7 +493,6 @@ export class QueryEngine {
       };
     }
 
-    // 保存轨迹
     this.trajectory?.finish();
     const trajectoryPath = this.trajectory?.save();
     if (trajectoryPath && this.config.verbose) {
@@ -599,7 +595,7 @@ export class QueryEngine {
           this.client, this.config.model, loopState.maxOutputTokensOverride,
           systemInput, loopState.messages, toolDefs, this.abortController.signal,
         );
-        // 兜底流用云端模型名（issue #98）：本地模型名打到云端必 404，config.fallbackModel 优先
+        // 兜底流用云端模型名（issue #98）：本地模型名发往云端必 404，config.fallbackModel 优先
         const fbModel = this.fallbackLabel
           ? resolveFallbackModel(this.fallbackLabel as "anthropic" | "openai", this.config.fallbackModel)
           : this.config.model;
@@ -610,7 +606,7 @@ export class QueryEngine {
             )
           : null;
         // 切换兜底前回滚本轮已累计状态（issue #97）：文本/工具缓冲/早期派发结果清零，
-        // 否则 primary 半截文本与 fallback 全量重复、残留 tool_use_start 变幽灵块
+        // 否则 primary 半截文本与 fallback 全量重复、残留的 tool_use_start 无法配对
         const onFailoverReset = async () => {
           await this.discardEarlyExecutions(earlyExecutions, toolResults, events);
           toolBuffers.clear();
@@ -1035,7 +1031,7 @@ export class QueryEngine {
         // 流式锁已移除（issue #43）：同批只读工具并发执行不再互斥，
         // 写/不安全项由 partitionRuns 独立成批 + 批间顺序循环天然互斥
         // doom loop（issue #100）：签名只在同一批内计一次——批内并行的相同只读调用是合法行为，
-        // 不构成循环；跨批/跨轮重复仍累计，连续 ≥3 轮同动作才拦
+        // 不构成循环；跨批/跨轮重复仍累计，连续 ≥3 轮同动作才拦截
         const doomSig = JSON.stringify({ name: buf.name, input });
         if (!this.doomBatchSigs.has(doomSig)) {
           this.doomBatchSigs.add(doomSig);
@@ -1049,7 +1045,6 @@ export class QueryEngine {
           }
         }
 
-        // 记录工具调用
         this.trajectory?.recordToolUse(buf.name, input, buf.id);
         const toolStartTime = Date.now();
 
@@ -1093,7 +1088,6 @@ export class QueryEngine {
           this.abortController.signal.removeEventListener("abort", onEngineAbort);
         }
 
-        // 记录工具执行状态
         const filePath = (input as any).file_path || (input as any).path;
         const operation = buf.name === "Write" ? "write" : buf.name === "Edit" ? "edit" : undefined;
         recordToolExecution(this.toolState, buf.name, filePath, operation);
@@ -1104,7 +1098,6 @@ export class QueryEngine {
         toolResults.push({ tool_use_id: buf.id, content: anthropicToolResultContent(result, resultStr) as never, is_error: toolErr });
         events.push({ type: "tool_result", toolUseId: buf.id, content: resultStr, isError: toolErr });
 
-        // 记录工具结果
         const toolDuration = Date.now() - toolStartTime;
         this.trajectory?.recordToolResult(buf.id, resultStr, toolErr, toolDuration);
 
@@ -1311,13 +1304,13 @@ export async function* query(params: {
 
 // ─── Ctrl+C 优雅中断接线（issue #98） ───────────────────────────────────────────
 // 每次 query() 注册活跃 engine；turn 进行中 SIGINT → interrupt() 结束流/取消工具，
-// 替代直接 process.exit(130)。无活跃 turn（REPL 空闲）时调用方维持原抢救+退出行为。
+// 替代直接 process.exit(130)。无活跃 turn（REPL 空闲）时调用方维持原落盘+退出行为。
 let activeEngine: QueryEngine | null = null;
 
 /**
  * 中断当前进行中的 turn。返回是否有活跃 turn 可中断：
  * true → 已请求优雅中断，调用方应继续等待本轮结束（不要 exit）；
- * false → 无活跃 turn，调用方走原有的抢救会话 + 退出。
+ * false → 无活跃 turn，调用方走原有的落盘会话 + 退出。
  */
 export function interruptActiveTurn(): boolean {
   if (!activeEngine) return false;

@@ -117,7 +117,7 @@ export async function promptHookTrust(h: ShellHookConfig): Promise<boolean> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      // 显式移除三处监听（issue #101）：超时后不残留吃后续 stdin 数据
+      // 显式移除三处监听（issue #101）：超时后不残留监听、不误吞后续 stdin 数据
       process.stdin.removeListener("data", onData);
       process.stdin.removeListener("close", onClose);
       process.stdin.removeListener("end", onEnd);

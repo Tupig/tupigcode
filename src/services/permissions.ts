@@ -151,7 +151,7 @@ export async function canUseTool(
       return { behavior: "deny", message: `目标为系统敏感路径，已拒绝：${rawP}` };
     }
   }
-  // Bash 写类命令同样前移（issue #87）：allow 规则不得旁路敏感命令检测；只读命令不拦
+  // Bash 写类命令同样前移（issue #87）：allow 规则不得旁路敏感命令检测；只读命令不拦截
   if (toolName === "Bash") {
     const cmd = String(input.command ?? "");
     if (cmd && classifyBash(cmd) !== "safe" && touchesSensitivePath(cmd)) {
