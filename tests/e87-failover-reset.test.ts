@@ -3,7 +3,7 @@
  *
  * - primary 已产出文本后 infra 故障 → 切 fallback 前 fullText/toolBuffers/events 回滚
  * - 最终 assistant 消息只含 fallback 全量文本（无重复、无 primary 残留）
- * - primary 残留的半个 tool_use_start 不产生幽灵 tool_result
+ * - primary 残留的半个 tool_use_start 不产生无法配对的 tool_result
  * - primary 未产出即故障 → 行为不变（e4 已覆盖，此处回归 executeTurn 集成）
  */
 import { describe, expect, it, beforeAll } from "vitest";

@@ -1,5 +1,5 @@
 /**
- * proxy server 集成测试 — mock 后端 + 真实 http（python 无 HTTP 层测试的补强）
+ * proxy server 集成测试 — mock 后端 + 真实 http
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import http from "http";

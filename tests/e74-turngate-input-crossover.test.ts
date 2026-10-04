@@ -1,7 +1,7 @@
 /**
  * e74: REPL 输入串扰防护——TurnGate（issue #86）
  *
- * 复现实测：审批弹问的裸 stdin data 监听与 readline 共挂同一输入流，
+ * 审批弹问的裸 stdin data 监听与 readline 共挂同一输入流，
  * 一次 y⏎ 双触发（line 幻影输入 + 审批 allow）。line handler 必须持 busy gate：
  * turn 进行中的行直接丢弃，审批 data 不受影响。
  */

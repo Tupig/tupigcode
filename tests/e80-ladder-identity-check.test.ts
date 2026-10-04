@@ -1,8 +1,8 @@
 /**
  * e80: 反应式梯子压缩等值检查（issue #91）
  *
- * 9 条消息 + 高用量：microcompact 原样返回（middle<=3），
- * 此前无 out!==before 检查 → 误报「已压缩」+ compactionCount++ + 假熔断。
+ * 9 条消息 + 高用量：microcompact 原样返回（middle<=3）时须校验 out!==before，
+ * 否则误报「已压缩」+ compactionCount++ + 假熔断。
  */
 import { describe, expect, it, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync } from "fs";

@@ -1,9 +1,9 @@
 /**
- * E66 A 批深度审查（#43-#47）——按规范独立写，不复刻实现
+ * E66 A 批深度审查（#43-#47）
  *
  * 审查点 1（A-1，#45）：消息缓存断点必须落在 content block 级
  *   ——Anthropic SDK 的 MessageParam 类型无顶层 cache_control；
- *     官方姿势是给最后一条消息的最后一个 content block 打断点
+ *     官方做法是给最后一条消息的最后一个 content block 打断点
  *     （或请求体顶层自动缓存），塞 MessageParam 顶层 = 非法/无效层级。
  *
  * 审查点 2（#47）：max_tokens 升级重试时，上一轮早期派发的 stale 结果

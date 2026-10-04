@@ -2,7 +2,7 @@
  * e83: /apply 落盘前自动快照（issue #93）
  *
  * applyStaged 成功即清 staging（无回滚介质）、/apply 不走工具钩子（autoSnapshot 不覆盖）。
- * 修复：applyStaged 前先建 before:apply 检查点，失败路径同样已有快照。
+ * applyStaged 前先建 before:apply 检查点，失败路径同样已有快照。
  */
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync } from "node:fs";

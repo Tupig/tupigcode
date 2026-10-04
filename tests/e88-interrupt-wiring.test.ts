@@ -1,7 +1,7 @@
 /**
  * E88 Ctrl+C 优雅中断接线（issue #98）
  *
- * - 无活跃 turn → interruptActiveTurn() false（REPL 空闲走原抢救+退出）
+ * - 无活跃 turn → interruptActiveTurn() false（REPL 空闲走原落盘+退出）
  * - query() 注册活跃 engine：turn 中断 → 单条 error result + fireStop(output=任务已中断)
  * - executeTurn 流中途 interrupt → stopReason "aborted"，不当 API 错误、不切兜底
  * - AbortError 不是基础设施故障 → streamWithFailover 不切兜底流

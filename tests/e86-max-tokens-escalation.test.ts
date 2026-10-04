@@ -1,11 +1,11 @@
 /**
- * E86 max_tokens 截断不再静默成功（issue #96）
+ * E86 max_tokens 截断升级重试（issue #96）
  *
  * - Anthropic 链路 stop_reason=max_tokens → 升级重试（首档 → 16384）
  * - 重试后 end_turn → 成功
  * - 升级耗尽 → error result，不报成功
  * - 升级基线跟随当前上限：config.maxTokens=32768 时从 65536 起（不降级）
- * - OpenAI finish_reason=length → stopReason=max_tokens（不再吞成 end_turn）
+ * - OpenAI finish_reason=length → stopReason=max_tokens（不吞成 end_turn）
  */
 import { describe, expect, it, beforeAll } from "vitest";
 import { mkdtempSync } from "fs";

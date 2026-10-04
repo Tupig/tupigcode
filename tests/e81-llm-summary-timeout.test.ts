@@ -1,8 +1,8 @@
 /**
  * e81: anthropic 摘要链路超时与失败回退（issue #91）
  *
- * openai 链路有 30s AbortController，anthropic messages.create 此前无 signal
- * ——摘要挂起会卡死主循环。补 AbortSignal.timeout，失败回退 budgetReduction。
+ * anthropic messages.create 补 AbortSignal.timeout（openai 链路已有 30s），
+ * 摘要挂起即中断，失败回退 budgetReduction。
  */
 import { describe, expect, it, vi } from "vitest";
 import { llmSummary, ContextCompactor } from "../src/context/compact/index";

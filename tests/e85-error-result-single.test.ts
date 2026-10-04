@@ -1,9 +1,9 @@
 /**
- * E85 错误/中断路径不再误报成功（issue #95）
+ * E85 错误/中断路径只产出 error result（issue #95）
  *
- * - API 错误 → 只产出一条 error result，不再追加「任务已完成」success result
+ * - API 错误 → 只产出一条 error result，不追加「任务已完成」success result
  * - route.log feedback 记 success:false（不污染 A23 画像）
- * - abort 中断 → error result，同样不进成功分支
+ * - abort 中断 → error result，不进成功分支
  * - 对照：正常结束仍是一条 success result + feedback success:true
  */
 import { describe, expect, it, beforeAll } from "vitest";

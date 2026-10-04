@@ -2,8 +2,8 @@
  * E73 死常量接线一致性（#84，方案 a 等值接线）
  *
  * 审查点：三个常量（HOOK_TIMEOUT_MS / MAX_RESULT_CHARS / TOKEN_BYTES_PER_TOKEN）
- * 是唯一事实源，所有使用点必须引用常量而非字面量——防止「改常量不生效」的
- * 接线债复发。等值替换下行为不变，故用源码结构断言锁定接线形态。
+ * 是唯一事实源，所有使用点必须引用常量而非字面量，防止改常量不生效。
+ * 等值替换下行为不变，故用源码结构断言锁定接线形态。
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";

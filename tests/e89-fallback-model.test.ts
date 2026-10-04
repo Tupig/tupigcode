@@ -2,7 +2,7 @@
  * E89 兜底模型解析（issue #98 问题 1）
  *
  * - resolveFallbackModel：explicit 优先 → anthropic 默认云模型 → openai 走 OPENAI_MODEL
- * - 执行级：兜底流用云模型名，不再沿用本地 config.model（14b 打云端必 404）
+ * - 执行级：兜底流用云模型名，不沿用本地 config.model（14b 发往云端必 404）
  */
 import { describe, expect, it, beforeAll } from "vitest";
 import { mkdtempSync } from "fs";

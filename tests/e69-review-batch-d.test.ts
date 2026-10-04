@@ -1,5 +1,5 @@
 /**
- * E69 D 批深度审查（#58-#62）——按规范独立写边界
+ * E69 D 批深度审查（#58-#62）
  *
  * 审查点 1（D-1，#59）：list_changed 重拉后，**同名但 signature 变更**的工具
  *   （description/inputSchema/annotations/title）也算变更，必须 fireChanged 让
