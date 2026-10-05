@@ -57,7 +57,7 @@ case "$OS" in
 XML
     launchctl unload "$PLIST" 2>/dev/null || true
     launchctl load "$PLIST"
-    echo "✅ macOS 服务已注册并启动（开机自启生效）"
+    echo "macOS 服务已注册并启动（开机自启生效）"
     echo "   看板: https://localhost:$PORT （自签名证书，首次访问点「高级 → 继续前往」）"
     echo "   状态: launchctl list | grep unity-test-platform"
     echo "   卸载: scripts/uninstall-service.sh"
@@ -87,7 +87,7 @@ WantedBy=multi-user.target
 UNIT
     sudo systemctl daemon-reload
     sudo systemctl enable --now unity-orchestrator
-    echo "✅ systemd 服务已注册并启动（开机自启生效）"
+    echo "systemd 服务已注册并启动（开机自启生效）"
     echo "   看板: https://localhost:$PORT （自签名证书，首次访问点「高级 → 继续前往」）"
     echo "   状态: systemctl status unity-orchestrator"
     echo "   日志: journalctl -u unity-orchestrator -f"

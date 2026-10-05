@@ -864,10 +864,10 @@ class RenderService {
     };
 
     if (job.status === 'pending' || job.status === 'running') {
-      mkBtn('✕ 取消任务', 'px-3 py-1.5 text-xs rounded-lg border border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors', '标记为已取消，不再派发执行', 'job:cancel');
+      mkBtn('取消任务', 'px-3 py-1.5 text-xs rounded-lg border border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors', '标记为已取消，不再派发执行', 'job:cancel');
     }
-    mkBtn('🗑 删除任务', 'px-3 py-1.5 text-xs rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition-colors', '从列表移除该任务', 'job:delete');
-    mkBtn('📄 查看执行记录', 'px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-100 transition-colors', '加载 Agent 上传的 steps / 日志', 'job:artifacts');
+    mkBtn('删除任务', 'px-3 py-1.5 text-xs rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition-colors', '从列表移除该任务', 'job:delete');
+    mkBtn('查看执行记录', 'px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-100 transition-colors', '加载 Agent 上传的 steps / 日志', 'job:artifacts');
     detail.appendChild(actions);
 
     // 产物内容挂载点

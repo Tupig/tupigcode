@@ -134,7 +134,7 @@ function renderAgentsMini(data) {
   let html = `<div class="text-2xl font-semibold">${online}<span class="text-sm text-gray-400"> / ${items.length}</span></div><p class="text-xs text-gray-500 mt-1">在线 Agent 数</p>`;
   html += items.slice(0, 4).map(x => {
     const on = isOnline(x);
-    return `<div class="flex items-center justify-between text-xs text-gray-600 mt-2"><span>${on ? '🟢' : '⚪'} ${x.agent_id}</span><span class="text-gray-400">${x.platform}</span></div>`;
+    return `<div class="flex items-center justify-between text-xs text-gray-600 mt-2"><span>${on ? '在线' : '离线'} ${x.agent_id}</span><span class="text-gray-400">${x.platform}</span></div>`;
   }).join('');
   el.innerHTML = html;
 }

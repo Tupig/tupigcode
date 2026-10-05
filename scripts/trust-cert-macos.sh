@@ -32,9 +32,9 @@ if ! kill -0 "$SEC_PID" 2>/dev/null && [ -z "$OK" ]; then
 fi
 
 if [ "$OK" = "yes" ]; then
-  echo "✅ 系统信任已生效（curl 无需 -k 即可访问）——Safari/Keychain 系浏览器不再警告"
+  echo "系统信任已生效（curl 无需 -k 即可访问）——Safari/Keychain 系浏览器不再警告"
 else
-  echo "⚠️ 自动验证未通过。两种可能："
+  echo "! 自动验证未通过。两种可能："
   echo "   1) 授权框被取消/超时 —— 重新运行本脚本再试"
   echo "   2) Chrome/Chromium 使用自有根证书库，不读钥匙串信任 ——"
   echo "      在其证书警告页点「高级 → 继续前往 localhost」即可（一次性，会话内有效）"

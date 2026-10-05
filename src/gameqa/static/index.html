@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no" />
   <meta name="theme-color" content="#0071e3" />
   <title>Unity MMORPG 自动化测试平台</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50' y='72' font-size='60' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='white'>G</text></svg>">
   <script src="/static/js/vendor/tailwind.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css?v=13">
 </head>
@@ -20,11 +20,11 @@
         <p>Unity MMORPG · v2</p>
       </div>
       <nav id="wb-nav" class="wb-nav" aria-label="功能导航">
-        <button type="button" class="wb-nav-item active" data-view="overview"><span class="wb-nav-icon">📊</span> 工作台</button>
-        <button type="button" class="wb-nav-item" data-view="jobs"><span class="wb-nav-icon">📋</span> 任务管理</button>
-        <button type="button" class="wb-nav-item" data-view="agents"><span class="wb-nav-icon">🤖</span> Agent</button>
-        <button type="button" class="wb-nav-item" data-view="skills"><span class="wb-nav-icon">🧩</span> 技能</button>
-        <button type="button" class="wb-nav-item" data-view="create"><span class="wb-nav-icon">➕</span> 创建任务</button>
+        <button type="button" class="wb-nav-item active" data-view="overview">工作台</button>
+        <button type="button" class="wb-nav-item" data-view="jobs">任务管理</button>
+        <button type="button" class="wb-nav-item" data-view="agents">Agent</button>
+        <button type="button" class="wb-nav-item" data-view="skills">技能</button>
+        <button type="button" class="wb-nav-item" data-view="create">创建任务</button>
       </nav>
       <div class="wb-sidebar-footer">
         <div id="server-status" class="text-xs text-gray-500 flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-gray-300"></span> 连接中…</div>
@@ -49,11 +49,11 @@
           <div id="onboarding" class="hidden mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
             <div class="flex items-start justify-between gap-3">
               <div class="space-y-1.5">
-                <h3 class="text-sm font-semibold text-blue-900">👋 还没有接入任何 Agent</h3>
+                <h3 class="text-sm font-semibold text-blue-900">还没有接入任何 Agent</h3>
                 <p class="text-xs text-blue-800 leading-relaxed">三步开始测试：① 在执行机上运行 Agent（单文件 <code class="bg-blue-100 px-1 rounded">unity-agent</code>，无需安装 Python）→ ② 在「创建任务」提交测试 → ③ 在「任务管理」查看结果，点击任务可展开详情。</p>
                 <p class="text-xs text-blue-700">快速启动 Agent：<code class="bg-blue-100 px-1.5 py-0.5 rounded select-all">PLATFORM_URL=http://localhost:9111 AGENT_SKILLS=PlayMode,AIAgent ./unity-agent</code></p>
               </div>
-              <button id="onboarding-close" class="text-blue-400 hover:text-blue-600 text-sm px-1 shrink-0" title="不再显示">✕</button>
+              <button id="onboarding-close" class="text-blue-400 hover:text-blue-600 text-sm px-1 shrink-0" title="不再显示">关闭</button>
             </div>
           </div>
 
@@ -102,17 +102,14 @@
           <!-- 快捷操作 -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 animate-on-scroll">
             <button type="button" data-goto="create" class="apple-card text-left hover:border-blue-300 transition-colors">
-              <div class="text-lg mb-1">➕</div>
               <div class="text-sm font-medium">创建测试任务</div>
               <p class="text-xs text-gray-500 mt-0.5">AI 探索 / Airtest / Unity 测试</p>
             </button>
             <button type="button" data-goto="agents" class="apple-card text-left hover:border-blue-300 transition-colors">
-              <div class="text-lg mb-1">🤖</div>
               <div class="text-sm font-medium">查看 Agent</div>
               <p class="text-xs text-gray-500 mt-0.5">在线状态与技能清单</p>
             </button>
             <button type="button" data-goto="skills" class="apple-card text-left hover:border-blue-300 transition-colors">
-              <div class="text-lg mb-1">🧩</div>
               <div class="text-sm font-medium">浏览技能</div>
               <p class="text-xs text-gray-500 mt-0.5">平台支持的测试能力</p>
             </button>
@@ -131,7 +128,7 @@
           </div>
           <div class="flex items-center justify-between mb-2">
             <p class="text-xs text-gray-400">点击任务展开详情（重试 / 取消 / 删除 / 执行记录）</p>
-            <button type="button" id="cleanup-jobs" class="px-2.5 py-1 text-xs rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors" title="删除全部已完成（通过/失败/已取消）的任务">🧹 清理已完成</button>
+            <button type="button" id="cleanup-jobs" class="px-2.5 py-1 text-xs rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors" title="删除全部已完成（通过/失败/已取消）的任务">清理已完成</button>
           </div>
           <div id="jobs" class="apple-card p-4">加载中…</div>
         </section>

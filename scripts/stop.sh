@@ -37,7 +37,7 @@ if pgrep -f "$PROC_PATTERN" >/dev/null 2>&1; then
 fi
 
 if [ -n "$stopped" ]; then
-  echo "✅ 已停止: $stopped"
+  echo "已停止: $stopped"
 else
   echo "没有正在运行的编排服务。"
 fi
