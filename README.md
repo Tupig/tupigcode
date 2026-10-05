@@ -72,7 +72,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 > [!IMPORTANT]
 > - 开发态可用 `npm run dev:tupigcode` / `npm run gameqa:serve`（tsx 直跑，免构建）。
-> - gameqa 默认全站 HTTPS（自签名证书自动生成于 `data/tls/`）；浏览器首次访问点「高级 → 继续前往」，macOS 可用 `./scripts/trust-cert-macos.sh` 一键信任。
+> - gameqa 默认全站 HTTPS（自签名证书自动生成于 `data/tls/`）；浏览器首次访问点「高级 → 继续前往」，macOS 可执行 `./scripts/trust-cert-macos.sh` 完成信任。
 > - 跑 MLX 需要 Apple Silicon；`llm doctor` 自检环境。
 
 ## 七个命令入口
@@ -172,7 +172,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 **会话与状态**
 
-- **会话恢复**：session / checkpoint 一键回滚；自动快照（每轮与写类工具成功后，防抖 5s、上限 20 滚动，`TUPIG_AUTOSNAPSHOT=0` 关）；`/rewind [chat|code|all] [id]` 三档回卷（回对话 / 回代码 / 全回），跨进程续跑
+- **会话恢复**：session / checkpoint 单命令回滚；自动快照（每轮与写类工具成功后，防抖 5s、上限 20 滚动，`TUPIG_AUTOSNAPSHOT=0` 关）；`/rewind [chat|code|all] [id]` 三档回卷（回对话 / 回代码 / 全回），跨进程续跑
 - **检查点按名称回滚**：`/rewind` 参数为 id-or-label，id 精确优先，label 精确匹配（同名取最新），回滚消息标注匹配方式
 - **SIGINT 会话抢救**：Ctrl+C / SIGTERM 同步落盘当前历史并打 `interrupted` 标记（空会话不写）；下次启动扫描孤儿会话打印「恢复：/resume \<id\>」提示；正常 turn 结束的保存不带标记自然冲掉，也可手动 `clearInterruptedFlag`；会话文件 temp+rename 原子写（中断不半写），sessionId 白名单校验拒绝含 `/` 的穿越 id
 - **会话列表**：`/resume`（无 id）与 `/sessions` 统一行格式：id + 相对时间 + 条数 + 首条用户 prompt 预览（截断 60 字，空会话显示「无预览」占位），按 updatedAt 倒序
