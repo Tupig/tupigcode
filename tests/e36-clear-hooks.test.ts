@@ -36,7 +36,7 @@ describe("PreClear / PostClear", () => {
     expect(reset).toBe(1);
   });
 
-  it("reset 抛异常 → 原样上抛（清空失败不被 hook 吞掉）", async () => {
+  it("reset 抛异常 → 原样上抛（清空失败不被 hook 忽略）", async () => {
     const hs = new HookSystem();
     hs.register({ event: "PreClear", handler: () => {} });
     await expect(

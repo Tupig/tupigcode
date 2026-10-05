@@ -1,6 +1,6 @@
 /**
- * E30 SIGINT 会话抢救（issue #27）
- * interrupted 标记落盘 / 启动检测孤儿会话 / 正常结束清除 / 同步抢救 / 空会话不写
+ * E30 SIGINT 会话同步落盘（issue #27）
+ * interrupted 标记落盘 / 启动检测孤儿会话 / 正常结束清除 / 同步写盘 / 空会话不写
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, readFileSync, existsSync, writeFileSync } from "fs";
@@ -70,7 +70,7 @@ describe("interrupted 标记", () => {
   });
 });
 
-describe("rescueSessionSync 同步抢救", () => {
+describe("rescueSessionSync 同步落盘", () => {
   it("SIGINT 路径：同步写盘含标记", () => {
     rescueSessionSync(dir, SID, msgs(3));
     const raw = JSON.parse(readFileSync(join(dir, ".tupigcode", "sessions", `${SID}.json`), "utf-8"));
@@ -79,7 +79,7 @@ describe("rescueSessionSync 同步抢救", () => {
     expect(listInterruptedSessions(dir)).toHaveLength(1);
   });
 
-  it("空消息 → 不写文件（没有抢救价值）", () => {
+  it("空消息 → 不写文件", () => {
     rescueSessionSync(dir, SID, []);
     expect(existsSync(join(dir, ".tupigcode", "sessions", `${SID}.json`))).toBe(false);
   });

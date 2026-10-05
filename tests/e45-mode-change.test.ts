@@ -38,7 +38,7 @@ describe("fireModeChange", () => {
     expect(fired).toEqual(["act"]);
   });
 
-  it("触发器抛异常 → 静默吞掉", async () => {
+  it("触发器抛异常 → 静默隔离", async () => {
     const hs = new HookSystem();
     hs.register({ event: "ModeChange", handler: () => { throw new Error("boom"); } });
     await expect(fireModeChange(hs, "act", "plan", base())).resolves.toBeUndefined();

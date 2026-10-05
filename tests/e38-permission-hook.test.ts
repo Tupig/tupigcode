@@ -1,6 +1,6 @@
 /**
  * E38 PermissionResult 权限落定 hook（issue #35）
- * 决策字段 / matcher 按 decision 过滤 / 异常吞掉 / mock 端到端 allow 触发
+ * 决策字段 / matcher 按 decision 过滤 / 异常隔离 / mock 端到端 allow 触发
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { HookSystem, type HookContext } from "../src/engine/hooks";
@@ -34,7 +34,7 @@ describe("PermissionResult", () => {
     expect(fired).toEqual(["deny"]);
   });
 
-  it("触发器抛异常 → 静默吞掉", async () => {
+  it("触发器抛异常 → 静默隔离", async () => {
     const hs = new HookSystem();
     hs.register({ event: "PermissionResult", handler: () => { throw new Error("boom"); } });
     await expect(

@@ -29,7 +29,7 @@ describe("PostRewind", () => {
     expect(fired).toBe(0);
   });
 
-  it("触发器抛异常 → 静默吞掉", async () => {
+  it("触发器抛异常 → 静默隔离", async () => {
     const hs = new HookSystem();
     hs.register({ event: "PostRewind", handler: () => { throw new Error("boom"); } });
     await expect(

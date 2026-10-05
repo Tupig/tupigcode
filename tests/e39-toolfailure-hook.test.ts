@@ -1,6 +1,6 @@
 /**
  * E39 PostToolUseFailure 补触发（issue #36）
- * 执行错误/超时触发一次（带 error output + durationMs）/ 异常吞掉 / 字段正确
+ * 执行错误/超时触发一次（带 error output + durationMs）/ 异常隔离 / 字段正确
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 // 环境必须在静态 import（模块求值）前生效——constants.ts 的 TOOL_TIMEOUT_MS
@@ -32,7 +32,7 @@ describe("PostToolUseFailure 单元", () => {
     expect(seen[0].toolName).toBe("Bash");
   });
 
-  it("触发器抛异常 → 静默吞掉", async () => {
+  it("触发器抛异常 → 静默隔离", async () => {
     const hs = new HookSystem();
     hs.register({ event: "PostToolUseFailure", handler: () => { throw new Error("boom"); } });
     await expect(

@@ -63,7 +63,7 @@ describe("生命周期事件触发", () => {
     expect(got).toEqual(["PreCompact"]);
   });
 
-  it("handler 抛错 → fireLifecycle 吞掉不抛", async () => {
+  it("handler 抛错 → fireLifecycle 隔离不上抛", async () => {
     const hs3 = new HookSystem();
     hs3.register({ event: "Stop", handler: () => { throw new Error("boom"); } });
     await expect(fireStop(hs3, ctx())).resolves.toBeUndefined();

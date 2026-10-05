@@ -4,7 +4,7 @@
  * - 同事件多 handler 并行执行（总耗时 ≈ max 而非 sum）
  * - 最严合并：任一 block 即 block，block 的 message 不被后续覆盖
  * - 未 block：message/replacement 注册序第一个非空；additionalContext 拼接
- * - handler 异常隔离：抛错吞掉不影响其他结果
+ * - handler 异常隔离：抛错不影响其他结果
  * - 并行下 block 不再短路后续 handler（记录的行为变化）
  */
 import { describe, expect, it, beforeEach, afterEach, beforeAll } from "vitest";
@@ -91,7 +91,7 @@ describe("最严合并", () => {
 });
 
 describe("异常隔离", () => {
-  it("handler 抛错吞掉，其余结果保留", async () => {
+  it("handler 抛错隔离，其余结果保留", async () => {
     hookSystem.register({ event: "Stop", handler: () => { throw new Error("boom"); } });
     hookSystem.register({ event: "Stop", handler: () => ({ message: "存活" }) });
 

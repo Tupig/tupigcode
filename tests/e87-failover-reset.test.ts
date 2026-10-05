@@ -78,7 +78,7 @@ const textOf = (m: any): string =>
       : "";
 
 describe("中途断流 failover 回滚已累计状态", () => {
-  it("assistant 消息只含 fallback 文本，不重复、无幽灵 tool_use", async () => {
+  it("assistant 消息只含 fallback 文本，不重复、无残留 tool_use", async () => {
     const engine = await makeEngine();
     engine.client = halfClient();
     engine.fallbackClient = cleanClient();
@@ -91,12 +91,12 @@ describe("中途断流 failover 回滚已累计状态", () => {
     expect(ls.messages).toHaveLength(1);
     const assistant = ls.messages[0];
     expect(textOf(assistant)).toBe("完整输出。");
-    // 无 primary 残留：不重复、无 tu_half 幽灵块
+    // 无 primary 残留：不重复、无 tu_half 残留块
     if (Array.isArray(assistant.content)) {
       const toolUses = assistant.content.filter((b: any) => b.type === "tool_use");
       expect(toolUses).toHaveLength(0);
     }
-    // 事件序列不含幽灵 tool_result
+    // 事件序列不含无法配对的 tool_result
     expect(res.toolResults).toHaveLength(0);
     expect(res.events.filter((e: any) => e.type === "tool_result")).toHaveLength(0);
   }, 15_000);
