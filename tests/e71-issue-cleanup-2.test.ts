@@ -3,7 +3,7 @@
  *
  * 审查点 1（#69）：turnNumber 必须是会话内真实输入序号——
  *   UserPromptSubmit 为该条输入的 0-based 序号（hook 侧可直接观测到 0,1,…，
- *   block 的输入也占号）；permission_prompt 为弹问时已提交输入数；不再恒 0。
+ *   block 的输入也占号）；permission_prompt 为弹问时已提交输入数。
  * 审查点 2（#70）：#49 并行合并的两处收紧定性为有意行为并锁定——
  *   a) block 者未带 replacement → 不保留前面 handler 的 replacement
  *   b) block 之后 handler 的 additionalContext 仍被收集（消费方自行丢弃）

@@ -605,7 +605,7 @@ class RenderService {
         jobCard.appendChild(jobHeader);
         jobCard.appendChild(jobInfo);
 
-        // 一行摘要（友好格式，不再裸奔 JSON）
+        // 一行摘要（友好格式，不输出原始 JSON）
         if (job.result) {
           const resultInfo = document.createElement('div');
           resultInfo.className = 'text-xs text-gray-500';
