@@ -78,7 +78,6 @@ export const DocReadTool = defineTool({
     try {
       const fileStat = await stat(resolved);
 
-      // 文本文件直接读取
       if ([".txt", ".md", ".json", ".csv", ".xml", ".yaml", ".yml"].includes(ext)) {
         const content = await readFile(resolved, "utf-8");
         const maxSize = MAX_RESULT_CHARS;
@@ -88,7 +87,6 @@ export const DocReadTool = defineTool({
         return content;
       }
 
-      // PDF 文件
       if (ext === ".pdf") {
         return `PDF 文件：${resolved}
 大小：${fileStat.size} 字节

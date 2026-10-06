@@ -377,7 +377,6 @@ async function promptUserDecisionLocked(
     process.stdin.once("close", () => finish("deny"));
     process.stdin.once("end", () => finish("deny"));
 
-    // 30 秒超时
     const timeout = setTimeout(() => finish("deny"), 30_000);
   });
 }

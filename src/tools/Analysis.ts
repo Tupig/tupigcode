@@ -223,7 +223,6 @@ export const ComplexityAnalysisTool = defineTool({
       lines2.push(`  平均函数长度：${metrics.avgFunctionLength.toFixed(0)} 行`);
       lines2.push(`  最长函数：${metrics.longestFunction.name} (${metrics.longestFunction.length} 行)`);
 
-      // 复杂度评级
       if (metrics.cyclomatic <= 10) {
         lines2.push(`  评级：简单`);
       } else if (metrics.cyclomatic <= 20) {

@@ -35,7 +35,6 @@ export const RenameSymbolTool = defineTool({
     const dryRun = input.dryRun ?? false;
 
     try {
-      // 使用 grep 查找所有引用
       const { stdout } = await execFileAsync(
         "grep",
         ["-rn", "--include=*." + getFileExtension(fileType), input.oldName, ctx.workDir],
@@ -289,7 +288,6 @@ export const ExtractConstantTool = defineTool({
       const constantDecl = `const ${input.constantName} = ${input.value};\n`;
       const newContent = constantDecl + content;
 
-      // 替换所有引用
       const finalContent = newContent.replace(
         new RegExp(escapeRegex(input.value), "g"),
         input.constantName,
@@ -349,7 +347,6 @@ async function updateImportReferences(
   let updated = 0;
 
   try {
-    // 查找所有导入旧路径的文件
     const { stdout } = await execFileAsync(
       "grep",
       ["-rn", oldRelative, workDir],

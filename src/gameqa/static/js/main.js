@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// 一键重试：详情区「用相同参数重试」→ 以原参数创建新任务
+// 重试：详情区「用相同参数重试」→ 以原参数创建新任务
 window.addEventListener('job:retry', async (e) => {
   const job = e.detail || {};
   try {
@@ -390,7 +390,7 @@ window.addEventListener('job:retry', async (e) => {
   }
 });
 
-// 一键清理：删除全部终态任务（数据管理）
+// 清理：删除全部终态任务（数据管理）
 document.getElementById('cleanup-jobs')?.addEventListener('click', async () => {
   try {
     const res = await apiService.cleanupJobs();
@@ -401,7 +401,7 @@ document.getElementById('cleanup-jobs')?.addEventListener('click', async () => {
   }
 });
 
-// 一键取消：pending/running → cancelled（终态，Agent 迟到的结果不覆盖）
+// 取消：pending/running → cancelled（终态，Agent 迟到的结果不覆盖）
 window.addEventListener('job:cancel', async (e) => {
   const job = e.detail || {};
   try {
