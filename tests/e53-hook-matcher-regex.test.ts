@@ -4,7 +4,7 @@
  * - tool_name 全串锚定正则 `^(?:p)$`：Edit|Write 命中且不误伤 MultiEdit
  * - 既有精确配置行为不变；子串意图用 `.*X.*`
  * - 非法正则回退精确比较
- * - loadShellHooks 解析 matcher.decision/modeTo（不再丢弃）
+ * - loadShellHooks 解析并保留 matcher.decision/modeTo
  * - hashRule 纳入 matcher 全字段，配置变更重询 TOFU
  */
 import { describe, expect, it, beforeEach, afterEach, beforeAll } from "vitest";

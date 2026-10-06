@@ -2,7 +2,7 @@
  * e76: 会话身份单源（issue #88）
  *
  * REPL 局部 sessionId（生成/resume/fork）是唯一真相源；
- * adoptSessionId 同步 appStore，hook ctx / idle / /clear 不再用启动默认值。
+ * adoptSessionId 同步 appStore，hook ctx / idle / /clear 均取同步后的会话值。
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

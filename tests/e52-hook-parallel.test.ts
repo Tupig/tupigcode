@@ -5,7 +5,7 @@
  * - 最严合并：任一 block 即 block，block 的 message 不被后续覆盖
  * - 未 block：message/replacement 注册序第一个非空；additionalContext 拼接
  * - handler 异常隔离：抛错不影响其他结果
- * - 并行下 block 不再短路后续 handler（记录的行为变化）
+ * - 并行下 block 后续 handler 仍继续执行
  */
 import { describe, expect, it, beforeEach, afterEach, beforeAll } from "vitest";
 

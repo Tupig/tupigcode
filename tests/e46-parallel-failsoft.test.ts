@@ -2,7 +2,7 @@
  * E46 并行批 fail-soft + 去全局流式锁（#43）
  *
  * - mapWithConcurrency 改 settled 语义：单任务异常不整批 reject
- * - QueryEngine 批次闸门：同批只读工具并发执行不再被「另一个工具正在执行中」误伤
+ * - QueryEngine 批次闸门：同批只读工具并发执行，互不阻塞
  * - 批内异常各自吃 error tool_result，兄弟任务结果保留
  */
 import { describe, expect, it, beforeAll } from "vitest";

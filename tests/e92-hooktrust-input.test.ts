@@ -3,7 +3,7 @@
  *
  * - 粘贴 `y⏎<其它文本>` / 带空格 → 首行解析（parseApprovalAnswer，与 #92 审批一致）
  * - 30s 超时 finish → stdin 上 data/close/end 三处 listener 全部移除（不误吞后续输入）
- * - 超时后再来 stdin 数据 → 不再有 hookTrust listener 消费
+ * - 超时后来的 stdin 数据 → 无 hookTrust listener 消费
  */
 import { describe, expect, it, beforeAll, afterEach, vi } from "vitest";
 

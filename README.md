@@ -125,7 +125,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **结果语义与截断保真（fix #95/#96）**：错误与中断路径只产出一条 `error` result，`route.log` feedback 记真实成败；Anthropic `stop_reason=max_tokens` 与 OpenAI `finish_reason=length` 进入输出额度升级重试（基线跟随 `maxTokens`，阶梯 `[8192,16384,32768,65536]`，耗尽才报错）
 - **failover 状态回滚（fix #97）**：主源中途断流切换兜底前回滚 `fullText` / `toolBuffers` / 早派发遗留与 `events`，assistant 消息只含兜底全量输出
 - **兜底模型接线（fix #98）**：`config.fallbackModel` 优先，缺省按兜底 provider 解析云模型（`TUPIG_CLOUD_MODEL` / `OPENAI_MODEL`，anthropic 默认 `claude-sonnet-4-20250514`），避免把本地模型名打到云端 404
-- **Ctrl+C 中断**：turn 进行中 SIGINT 调 `interrupt()`（`interruptActiveTurn` 活跃注册表），信号接入 LLM 流（`streamMessage` 收 signal），在途工具 per-call controller 联动 abort（取消文案、不 fire PostToolUseFailure）；`AbortError` 不切兜底，收尾 fire `Stop(output=任务已中断)` 与单条 error result；空闲时走抢救 + exit(130)，二按强制退出
+- **Ctrl+C 中断**：turn 进行中 SIGINT 调 `interrupt()`（`interruptActiveTurn` 活跃注册表），信号接入 LLM 流（`streamMessage` 收 signal），在途工具 per-call controller 联动 abort（取消文案、不 fire PostToolUseFailure）；`AbortError` 不切兜底，收尾 fire `Stop(output=任务已中断)` 与单条 error result；空闲时同步落盘 + exit(130)，二按强制退出
 - **流式空闲看门狗**：`withIdleWatchdog` 包装流式消费，距上一个内容事件超过阈值（默认 120s，`TUPIG_STREAM_IDLE_MS` 覆盖，0 关闭）抛「流式响应空闲超时」并回收内层迭代器；字节级 keepalive 不产生事件不重置计时；错误归类 network，复用既有 retry/failover 通道
 - **流式早期派发**：`tool_use` 输入收完（`tool_use_stop`）即执行只读且并发安全的工具，与模型尾部生成重叠以降低首工具延迟；流结束后结果直接复用不重复执行（权限只进一次），写工具、未知工具、JSON 非法仍走既有批次路径；max_tokens 与溢出重试前清空在途派发与遗留结果
 - **结果路由修复（fix #102）**：`contextTokens` 接进 `routeTask`（resume 大上下文可命中 `easy-ctx>=14k→8b`）；输入 JSON 非法的 tool_use 补发 `tool_use` 事件以配对后续 `tool_result`；流结束缺 `finish_reason` 按不完整响应记 `stopReason=error`；请求侧工具集统一为 `activeRequestTools()`（`modeManager.filterTools(promptTools(tools))`），init 事件、请求 `tools`、system 工具目录三处同源，plan 模式下模型看不到 Write/Edit/Bash
@@ -134,10 +134,10 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 - **TOFU 信任**：shell hook 首次触发询问，确认后写 `.tupigcode/hook-trust.json`（规则 hash 覆盖 event/matcher/command/timeout，任一变更重询）；拒绝不持久化，异常与超时 fail-closed；非 TTY 与 `TUPIG_HOOK_TRUST=0` 不打断；`/hooks` 查看、`/hooks clear` 清除、`/hooks reload` 手动重载，`/doctor` 列信任清单
 - **信任询问输入解析（fix #101）**：`promptHookTrust` 复用审批的 `parseApprovalAnswer` 首行解析（粘贴 `y⏎杂散内容` 不误拒）；30s 超时显式移除 data/close/end 三处 stdin listener，不残留吞后续输入
-- **并行执行与合并**：同事件多 handler 用 `Promise.all` 并行（总耗时约等于最慢者，单点异常吞掉）。合并规则：block 任一为真即 block，message 不被后续覆盖；未 block 时取注册序第一个非空 message/replacement，additionalContext 拼接。并行下 block 不短路后续 handler。两处有意收紧（issue #70）：block 者未带 replacement 时不保留前面 handler 的 replacement；block 之后 handler 的 additionalContext 仍被收集，但 UserPromptSubmit 整体丢弃不注入
+- **并行执行与合并**：同事件多 handler 用 `Promise.all` 并行（总耗时约等于最慢者，单点异常隔离）。合并规则：block 任一为真即 block，message 不被后续覆盖；未 block 时取注册序第一个非空 message/replacement，additionalContext 拼接。并行下 block 不短路后续 handler。两处有意收紧（issue #70）：block 者未带 replacement 时不保留前面 handler 的 replacement；block 之后 handler 的 additionalContext 仍被收集，但 UserPromptSubmit 整体丢弃不注入
 - **matcher 正则化**：`tool_name` 全串锚定正则 `^(?:p)$`（`Edit|Write` 命中两工具不误伤 MultiEdit），子串用 `.*X.*`，非法正则回退精确匹配；shell hooks.json 解析透传 `matcher.decision` / `matcher.modeTo`；TOFU `hashRule` 纳入 matcher 全字段
 - **hooks.json 热加载**：shell hooks 按工厂注册，`submitMessage` 入口检测 mtime 变更才整批重载（文件未变零动作，删除即失效）；代码注册（`hookSystem.register`）不受重载影响；REPL `/hooks reload` 忽略 mtime 强制重载并打印数量
-- **生命周期事件**：`Stop`（自然结束）、`SessionStart`（submitMessage 入口）、`PreCompact` + `PostCompact`（阈值梯度、溢出恢复、手动 /compact 三处压缩点）均已落地；压缩事件带 `source: manual|auto` 供 matcher 过滤，shell hooks.json 支持 `matcher.source`；hook 异常一律吞掉不阻塞
+- **生命周期事件**：`Stop`（自然结束）、`SessionStart`（submitMessage 入口）、`PreCompact` + `PostCompact`（阈值梯度、溢出恢复、手动 /compact 三处压缩点）均已落地；压缩事件带 `source: manual|auto` 供 matcher 过滤，shell hooks.json 支持 `matcher.source`；hook 异常一律隔离不阻塞
 - **UserPromptSubmit**：prompt 进模型前触发（mode 命令之后、init 之前）。`block`（exit 2 或 JSON block）拒绝本轮不发请求并输出原因；`additionalContext`（平铺 JSON 或 Claude Code `hookSpecificOutput` 嵌套）以独立 user 消息注入本轮上下文，多 hook 拼接不覆盖；`turnNumber` 为该条输入的 0-based 序号（`appStore.userPromptCount`，block 也递增）
 - **Notification hook**：`permission_prompt`（`promptUserDecision` 弹问前 fire-and-forget，非 TTY 不 fire）与 `idle_prompt`（REPL 输入空闲，`TUPIG_IDLE_NOTIFY_MS` 默认 300s、0 关闭，prompt 布防 / line 重置 / 一轮一次）；`matcher.notificationType` 过滤，shell hooks.json 解析透传，TOFU hash 覆盖
 - **PostToolUseFailure**：工具执行错误与超时（含 Bash 超时改为 reject 的真实失败语义）触发，携带 `output + durationMs`；校验失败与 doom 拒绝不触发
@@ -145,7 +145,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **PermissionResult**：allow/deny/always 决策后携带 `decision + ruleSource` 触发供审计，matcher 可按 decision 过滤
 - **ModeChange**：`/plan`、`/act` 实际发生切换时携带 `modeFrom/modeTo` 触发（同模式不触发），matcher 可按 modeTo 过滤
 - **PostRewind**：回滚成功后携带 `checkpointId + mode` 触发，失败不触发
-- **PreClear/PostClear**：`/clear` 序列为 Pre hook → 重置状态 → Post hook，hook 异常吞掉，重置失败原样上抛
+- **PreClear/PostClear**：`/clear` 序列为 Pre hook → 重置状态 → Post hook，hook 异常隔离，重置失败原样上抛
 
 **工具执行与并行**
 
@@ -174,7 +174,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 - **会话恢复**：session / checkpoint 单命令回滚；自动快照（每轮与写类工具成功后，防抖 5s、上限 20 滚动，`TUPIG_AUTOSNAPSHOT=0` 关）；`/rewind [chat|code|all] [id]` 三档回卷（回对话 / 回代码 / 全回），跨进程续跑
 - **检查点按名称回滚**：`/rewind` 参数为 id-or-label，id 精确优先，label 精确匹配（同名取最新），回滚消息标注匹配方式
-- **SIGINT 会话抢救**：Ctrl+C / SIGTERM 同步落盘当前历史并打 `interrupted` 标记（空会话不写）；下次启动扫描孤儿会话打印「恢复：/resume \<id\>」提示；正常 turn 结束的保存不带标记自然冲掉，也可手动 `clearInterruptedFlag`；会话文件 temp+rename 原子写（中断不半写），sessionId 白名单校验拒绝含 `/` 的穿越 id
+- **SIGINT 同步落盘**：Ctrl+C / SIGTERM 同步落盘当前历史并打 `interrupted` 标记（空会话不写）；下次启动扫描孤儿会话打印「恢复：/resume \<id\>」提示；正常 turn 结束的保存不带标记自然清除，也可手动 `clearInterruptedFlag`；会话文件 temp+rename 原子写（中断不半写），sessionId 白名单校验拒绝含 `/` 的穿越 id
 - **会话列表**：`/resume`（无 id）与 `/sessions` 统一行格式：id + 相对时间 + 条数 + 首条用户 prompt 预览（截断 60 字，空会话显示「无预览」占位），按 updatedAt 倒序
 - **REPL 输入防重入（issue #86）**：line handler 持 `TurnGate` 门闩，turn 进行中的行直接丢弃；审批弹问的裸 stdin 监听与 readline 共挂同一输入流，一次 y⏎ 双路分发不再产生幻影 prompt 或并发 query
 - **知识沉淀**：memory（长期记忆）、skills（技能库，`.tupigcode/skills/` 先审后存）、reflexion（反思入库）
