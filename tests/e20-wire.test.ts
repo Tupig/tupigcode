@@ -101,7 +101,7 @@ describe("体积上限滚动裁剪", () => {
     expect(lines.every((l) => l.data.pad.length === 200)).toBe(true); // 无半行
   });
 
-  it("trimWireFile 幂等：已低于上限不再变化", () => {
+  it("trimWireFile 幂等：已低于上限时原样返回", () => {
     fs.writeFileSync(file, '{"ts":"t","req_id":"r","kind":"llm.request","data":{"a":1}}\n');
     const before = fs.readFileSync(file, "utf-8");
     trimWireFile(file, 10_000);

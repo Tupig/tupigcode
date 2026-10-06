@@ -111,7 +111,7 @@ describe("estimateTokens 增量估算（#102-4）", () => {
     }) as any;
   }
 
-  it("同数组重复估算不再序列化旧消息；追加后只序列化新增（与全量口径等值）", async () => {
+  it("同数组重复估算不序列化旧消息；追加后只序列化新增（与全量口径等值）", async () => {
     const engine = await makeEngine();
     let serializations = 0;
     const mkMsg = (i: number) => ({

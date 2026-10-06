@@ -43,7 +43,7 @@ describe("审批粘贴首行解析（issue #92）", () => {
 });
 
 describe("skills 超长 description 截断（issue #92）", () => {
-  it("单条超长不再打爆目录预算（仍能展示首条+计数）", async () => {
+  it("单条超长受目录预算约束（展示首条+计数）", async () => {
     const { formatSkillCatalog } = await import("../src/knowledge/skills");
     const huge = "D".repeat(5000);
     const catalog = formatSkillCatalog([
@@ -85,7 +85,7 @@ describe("autoSnapshot 并发防抖（issue #92）", () => {
 });
 
 describe("sessionState 降级接线（issue #92）", () => {
-  it("sessionState.ts 不再导出死 loadSession/listSessions", async () => {
+  it("sessionState.ts 不导出 loadSession/listSessions", async () => {
     const mod = await import("../src/session/sessionState");
     expect(mod.loadSession).toBeUndefined();
     expect(mod.listSessions).toBeUndefined();
@@ -93,7 +93,7 @@ describe("sessionState 降级接线（issue #92）", () => {
     expect(typeof mod.createSessionState).toBe("function");
   });
 
-  it("QueryEngine 不再引用 loadSession（死路径删除）", () => {
+  it("QueryEngine 不引用 loadSession", () => {
     const src = readFileSync(join(__dirname, "..", "src", "engine", "QueryEngine.ts"), "utf-8");
     expect(src).not.toMatch(/loadSession/);
     expect(src).toMatch(/createSessionState\(config\.sessionId \?\? generateSessionId\(\)\)/);

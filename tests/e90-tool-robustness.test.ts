@@ -28,7 +28,7 @@ describe("withTimeout 超时取消底层", () => {
     expect(ac.signal.aborted).toBe(true);
   });
 
-  it("无 controller/无 hint → 默认副作用提示（不再裸超时文案）", async () => {
+  it("无 controller/无 hint → 默认副作用提示", async () => {
     const { withTimeout } = await import("../src/engine/time");
     await expect(withTimeout(new Promise(() => {}), 30, "工具 Bash")).rejects.toThrow(
       /底层操作可能仍在执行/,

@@ -110,7 +110,7 @@ function sseBody(lines: string[]): ReadableStream<Uint8Array> {
 }
 
 describe("OpenAI finish_reason=length 保留截断语义", () => {
-  it("length → stopReason=max_tokens（不再映射 end_turn）", async () => {
+  it("length → stopReason=max_tokens", async () => {
     const body = sseBody([
       'data: {"choices":[{"delta":{"content":"半截"}}]}',
       'data: {"choices":[{"delta":{},"finish_reason":"length"}]}',

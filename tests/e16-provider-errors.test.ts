@@ -53,7 +53,7 @@ describe("classifyProviderError", () => {
     }
   });
 
-  it("裸 500 不再误伤：普通消息含数字 → unknown，不 failover", () => {
+  it("裸 500：普通消息含数字 → unknown，不 failover", () => {
     const r = classifyProviderError(new Error("这个套餐价格是 500 元"));
     expect(r.kind).toBe("unknown");
     expect(r.failoverEligible).toBe(false);

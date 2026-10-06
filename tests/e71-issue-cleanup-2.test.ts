@@ -109,7 +109,7 @@ describe("审查点 1：turnNumber 为真实输入序号（#69）", () => {
     }
   }, 15_000);
 
-  it("permission_prompt 的 turnNumber = 弹问时已提交输入数（不再恒 0）", async () => {
+  it("permission_prompt 的 turnNumber = 弹问时已提交输入数", async () => {
     appStore.setState((s) => ({ ...s, userPromptCount: 3 }));
     const { hookSystem } = await import("../src/engine/hooks");
     const { promptUserDecision } = await import("../src/services/permissions");

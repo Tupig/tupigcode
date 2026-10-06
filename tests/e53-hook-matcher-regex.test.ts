@@ -82,7 +82,7 @@ describe("tool_name 正则匹配（全串锚定）", () => {
 });
 
 describe("shell hooks 解析 decision/modeTo", () => {
-  it("matcher.decision/modeTo 透传不再丢弃", () => {
+  it("loadShellHooks 透传 matcher.decision/modeTo", () => {
     const dir = mkdtempSync(join(tmpdir(), "tupig-e53-"));
     const file = join(dir, "hooks.json");
     writeFileSync(file, JSON.stringify([

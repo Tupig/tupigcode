@@ -41,7 +41,7 @@ async function withPrompt(fn: () => Promise<void>): Promise<void> {
 }
 
 describe("粘贴多行首行解析（与审批 #92 同口径）", () => {
-  it("`y⏎其它文本` → true（不再整块判等误拒）", async () => {
+  it("`y⏎其它文本` → true（按首行判定）", async () => {
     await withPrompt(async () => {
       const { promptHookTrust } = await import("../src/engine/hookTrust");
       const p = promptHookTrust(hook);

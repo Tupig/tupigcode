@@ -297,7 +297,7 @@ describe("SubAgentExecutor 独立上下文与权限", () => {
     expect(r.result).toContain("结论");
   });
 
-  it("模型解析：agent.model 传给流，不再硬编码 claude", async () => {
+  it("模型解析：agent.model 传给流", async () => {
     let model = "";
     const exec = new SubAgentExecutor([], {
       stream: multiRound([{ text: "ok" }], (a) => { model = a.model; }),

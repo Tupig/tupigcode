@@ -57,7 +57,7 @@ describe("压缩摘要生成 + 缓存", () => {
     expect(cache.summary).toBe(s);
   });
 
-  it("HEAD 未变 → 命中缓存，不再调用模型", async () => {
+  it("HEAD 未变 → 命中缓存，不调用模型", async () => {
     const before = await getLineage(repo, mockClient, "m");
     // 换一个必然抛错的 client：命中缓存则仍应返回原摘要
     const boom = { type: "unsupported" } as unknown as ApiClient;
