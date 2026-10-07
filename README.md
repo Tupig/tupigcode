@@ -327,7 +327,10 @@ tupigcode/
 │   ├── cli/                   # 7 个入口（tupigcode llm gameqa *-local mlx-local mlxcmd）
 │   └── git/ state/ utils/
 │
-├── tests/                     # vitest 120 文件 / 1060 用例
+├── tests/                     # vitest 120 文件 / 1060 用例，按子域分 14 目录
+│   ├── engine/ context/ routing/ hooks/ tools/ session/ permission/
+│   ├── mcp/ execution/ knowledge/ prompt/ commands/
+│   └── gameqa/ proxy/ fixtures/
 ├── mlx/                       # 推理服务层（models/venv/logs/state 运行时 + models.json）
 ├── .tupigcode/                # 运行时技能库（先审后存）
 └── .github/workflows/ci.yml   # 门槛：tsc + vitest + build
@@ -399,10 +402,26 @@ gameqa 环境变量见上文 [gameqa 节](#gameqa--unity-自动化测试平台)�
  npm run build         # 构建门槛（含 gameqa 静态资源拷贝 + 入口 chmod）
  ```
 
-用例分组：`n1~n12`（编辑/会话/沙箱/子代理/规格/RepoMap/harness…）、`e1~e93`
-（Provider/配置/护栏/容错/工具/并行/路由/优化/图像输入/模糊编辑/错误分类/MCP）、`f*`（压缩/权限）、`i1~i4`
-（记忆/技能/hooks/反思）、`g1~g7`（gameqa store/服务/内置执行器/Unity 真执行全链路/
-airtest·性能·AI 集成/TLS·CLI/轻量报告/Allure 报告）、`proxy-*`（三协议转换/SSE/流式 usage）、`smoke`、`cli`、`ctx10m`。
+**目录结构**（按子域分，`vitest.config.ts` 的 `tests/**` 递归匹配，分目录无需改配置）：
+
+| 目录 | 覆盖 |
+| --- | --- |
+| `engine/` | 跨域回归与冒烟：端到端、防卡死、wire 报文、深度审查批次、issue 清理、死常量接线、子代理、harness、`smoke` |
+| `context/` | 压缩（阈值梯子/熔断/线索/模型主动）、token 估算、prompt cache、lineage、上下文溢出、10M 窗口 |
+| `routing/` | provider 抽象、错误分类、failover、重试预算、路由分流、兜底模型 |
+| `hooks/` | 生命周期事件、matcher 正则、TOFU 信任、热加载、并行合并、失败/耗时/权限/模式 hook |
+| `tools/` | 文件编辑（模糊回退/MultiEdit）、检索（Grep/Glob/RepoMap）、Bash 裁剪、auto-test、工具延迟装载 |
+| `session/` | 会话持久化、检查点、rewind、resume、SIGINT 落盘、轨迹治理、REPL 输入防重入 |
+| `permission/` | 三级 diff 审查、审批持久化与预览、沙箱、敏感路径 |
+| `mcp/` | MCP 客户端、双重审批、ToolAnnotations、动态刷新、超时重连、HTTP/OAuth |
+| `execution/` | 并行批 fail-soft、写组按文件并行、流式早期派发与看门狗、doom 去重 |
+| `knowledge/` | 记忆、技能（内置包/披露预算）、反思写回 |
+| `prompt/` | 系统提示渲染、提示优化、询问串行化 |
+| `commands/` | CLI 启动器、`/todo` `/spec` `/diag`、运行参数接线 |
+| `gameqa/` | 编排服务、存储、内置执行器、Unity 真执行全链路、airtest·性能·AI 集成、TLS·CLI、轻量报告、Allure 报告 |
+| `proxy/` | 三协议转换、SSE relay、流式 usage 透传 |
+
+**命名规则**：新测试放对应子域目录，文件名用主题描述（如 `session-atomic-write.test.ts`），不强制序号；历史前缀只反映批次不反映子域——`e<N>` issue 驱动引擎批次（E1–E93 对应 issue #N）、`n<N>`/`i<N>`/`f*` 早期 A 批（内核能力/知识集成/压缩与权限）、`g<N>` gameqa 移植回归、`proxy-*` 协议代理平移——保留用于 git 与 issue 溯源。
 
 **CI**（`.github/workflows/ci.yml`，ubuntu-latest + Node 22 + ripgrep）三连：
 `tsc --noEmit` → `vitest run` → `npm run build`。本地全绿但 CI 红 → 先建 issue 再修。
