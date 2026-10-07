@@ -14,14 +14,34 @@
 
 - [这是什么](#这是什么)
 - [快速开始](#快速开始)
-- [七个命令入口](#七个命令入口)
-- [tupigcode — AI 编码代理](#tupigcode--ai-编码代理)
-- [gameqa — Unity 自动化测试平台](#gameqa--unity-自动化测试平台)
-- [MLX 本地推理 + 协议代理](#mlx-本地推理--协议代理)
+  - [命令入口](#命令入口)
 - [架构](#架构)
+- [tupigcode — AI 编码代理](#tupigcode--ai-编码代理)
+  - [能力清单（20+ 工具）](#能力清单20-工具)
+  - [上下文与压缩](#上下文与压缩)
+  - [容错与路由](#容错与路由)
+  - [Hooks](#hooks)
+  - [工具执行与并行](#工具执行与并行)
+  - [权限、审查与护栏](#权限审查与护栏)
+  - [会话与状态](#会话与状态)
+  - [MCP](#mcp)
+  - [工作模式与观测](#工作模式与观测)
+- [gameqa — Unity 自动化测试平台](#gameqa--unity-自动化测试平台)
+  - [任务类型（Agent 侧，`extra.job_type`）](#任务类型agent-侧extrajob_type)
+  - [内置执行器（服务端，`platform=web`，无需 Agent）](#内置执行器服务端platformweb无需-agent)
+  - [结果解析与报告](#结果解析与报告)
+  - [服务端 API（30 路由）](#服务端-api30-路由)
+  - [关键环境变量](#关键环境变量)
+  - [运维脚本与部署](#运维脚本与部署)
+- [MLX 本地推理 + 协议代理](#mlx-本地推理--协议代理)
+  - [模型清单（`mlx/models.json`）](#模型清单mlxmodelsjson)
 - [项目结构](#项目结构)
 - [配置与环境变量](#配置与环境变量)
+  - [tupigcode / 引擎](#tupigcode--引擎)
+  - [MLX / 代理](#mlx--代理)
 - [开发流程（PROCESS）](#开发流程process)
+  - [Bug / 优化 · Issue 强制流程](#bug--优化--issue-强制流程)
+  - [提交信息规范](#提交信息规范)
 - [测试与 CI](#测试与-ci)
 - [常见问题](#常见问题)
 - [演进里程碑](#演进里程碑)
@@ -33,7 +53,7 @@
 | 组件 | 说明 | 入口 |
 | --- | --- | --- |
 | **tupigcode-agent** | 编码代理，参照 Claude Code 架构实现：读代码、改文件、跑命令、多步规划，全链路可本地运行 | `tupigcode` |
-| **gameqa** | Unity3D 游戏自动化测试编排：HTTPS 看板 + 任务队列 + 跨机 Agent + Unity batchmode 真执行。NUnit3 结果解析保留全量用例明细（`summary.cases`，含 classname/duration/message/stack/stdout，上限 2000 条、单字段 4KB）。两个报告出口：`GET /report` 轻量单文件（汇总卡片 + 近 20 次通过率 SVG 趋势 + 历史表）、`GET /allure?job=N` Allure 风格报告（Overview/Suites/Categories 三个 tab + 用例树与失败详情 + 历史切换，无外部依赖）。API 与数据格式兼容原 gpt-visual-platform（Go 版） | `gameqa serve` / `gameqa agent` |
+| **gameqa** | Unity3D 游戏自动化测试编排：HTTPS 看板 + 任务队列 + 跨机 Agent + Unity batchmode 真执行，NUnit3 全量用例解析与双报告出口（详见 gameqa 章），API 与数据格式兼容原 gpt-visual-platform（Go 版） | `gameqa serve` / `gameqa agent` |
 | **MLX 推理层** | 在 Apple Silicon（M4）上用 MLX 跑本地大模型，管理服务生命周期，单端口暴露给任意客户端 | `llm` |
 | **协议代理** | 一个端口同时说 OpenAI Chat、OpenAI Responses、Anthropic Messages 三种协议，互相转换后转本地后端 | `:4100`（由 `llm` 拉起） |
 
@@ -75,7 +95,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 > - gameqa 默认全站 HTTPS（自签名证书自动生成于 `data/tls/`）；浏览器首次访问点「高级 → 继续前往」，macOS 可执行 `./scripts/trust-cert-macos.sh` 完成信任。
 > - 跑 MLX 需要 Apple Silicon；`llm doctor` 自检环境。
 
-## 七个命令入口
+### 命令入口
 
 | 命令 | 用途 | 典型用法 |
 | --- | --- | --- |
@@ -89,6 +109,28 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 开发态脚本：`npm run dev`（index）、`dev:tupigcode`、`dev:llm`、`gameqa:serve`、`gameqa:agent`、`test`、`test:watch`。
 
+## 架构
+
+```
+                         ┌─────────────────────────────────────────┐
+   tupigcode / gameqa /      │  src/engine      QueryEngine 主链路      │
+   *-local 客户端  ──────▶│  src/tools       20+ 工具（读写/检索/执行）│
+                         │  src/session     会话/检查点/轨迹         │
+                         │  src/context     压缩/预算/RepoMap        │
+                         │  src/knowledge   记忆/技能/反思           │
+                         │  src/modes       plan·act + spec         │
+                         │  src/agents      子代理                  │
+                         │  src/services    API/沙箱/权限/容错       │
+                         └─────────────────────────────────────────┘
+
+   gameqa serve ── HTTPS :9111 ── 看板 static + REST API + 内置执行器 worker
+        ▲  poll / 上报（X-Platform-Token 可选）
+   gameqa agent ── Unity batchmode · Airtest · AI 探索 · ADB/性能/日志
+   （跨 Mac/Linux/Windows/iOS/Android；PLATFORM_INSECURE_TLS 信任自签名）
+
+   任意 OpenAI/Anthropic 客户端 ──▶ :4100 代理（三协议互转）──▶ :8080 mlx_lm.server
+```
+
 ## tupigcode — AI 编码代理
 
 ### 能力清单（20+ 工具）
@@ -100,11 +142,9 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 | 执行 | `Bash`（沙箱 + 安全护栏）`PackageManager` `lint` `Refactor` `Analysis` |
 | 规划 | `todo`（任务清单）`Question`（向用户澄清）`parallel`（并行子任务）`Agent`（子代理派发） |
 | 状态 | `rollback`（回滚）`state`（状态机）`Web`（联网抓取） |
-| 扩展 | **MCP 客户端**：`.tupigcode/mcp.json`（Claude Code 兼容 `{ mcpServers: { name: { command, args, env } } }`）接入外部 MCP server，工具自动桥接为 `mcp_<server>_<tool>`。支持 `readOnlyHint` 只读标记、inputSchema 透传、单 server 失败降级；审批分两级（server 级 `approval` 与单工具 `tools` 白名单，allow/ask/deny），`TUPIG_MCP_APPROVAL=off\|ask` 为全局开关 |
+| 扩展 | **MCP 客户端**：接入外部 MCP server，工具桥接为 `mcp_<server>_<tool>`，配置、审批、OAuth 与断线自愈见下文 MCP 节 |
 
-### 内核特性
-
-**上下文与压缩**
+### 上下文与压缩
 
 - **压缩**：预算制，含阈值梯子与熔断；micro/snip 无变化时跳过（不计数、不误报、不触发熔断）；force 档 LLM 摘要三条链路可用（openai 本地非流式、anthropic 均 30s 超时、mock），失败回退预算削减且保留首条消息。`TUPIG_MAX_CONTEXT_TOKENS` 自适应窗口 30k ~ 10M
 - **轨迹记录**：事件环形上限 2000 条（超出计 dropped）、tool_result 截断 2000 字符、每会话落盘滚动保留 8 份
@@ -118,7 +158,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **上下文溢出自动恢复**：API 报 prompt too long 时不直接失败，走压缩流水线重建 messages 后重试本轮（限 2 次，触发 PreCompact/PostCompact，`compactionCount+1`），与 max_tokens 输出额度升级互不干扰；该类错误 `failoverEligible=false`（切 provider 解决不了超限）
 - **子代理自动压缩**：子代理循环每轮前估算上下文，超过 `MAX_CONTEXT_TOKENS×0.6` 走既有压缩流水线重建后继续，失败回退 budgetReduction；`SubAgentResult.compactions` 计数对父代理与轨迹可见
 
-**容错与路由**
+### 容错与路由
 
 - **多 Provider 容错**：Anthropic / OpenAI / 本地代理统一接入，`TUPIG_FAILOVER` 链式降级。错误分类见 `services/errors.ts`（rate_limit / auth / context_too_long / overloaded / server / network / invalid_request），429/529/5xx/断连触发切换，401 与业务错误不切换；`TUPIG_ROLE_MODELS` 按角色选模型
 - **重试退避**：`callWithRetry` 用 full-jitter 退避 `rand(0, min(10s, 1s·2^n))`，总预算 `TUPIG_RETRY_BUDGET_MS`（默认 60s）超限抛最后错误，401/403 立即抛
@@ -130,7 +170,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **流式早期派发**：`tool_use` 输入收完（`tool_use_stop`）即执行只读且并发安全的工具，与模型尾部生成重叠以降低首工具延迟；流结束后结果直接复用不重复执行（权限只进一次），写工具、未知工具、JSON 非法仍走既有批次路径；max_tokens 与溢出重试前清空在途派发与遗留结果
 - **结果路由修复（fix #102）**：`contextTokens` 接进 `routeTask`（resume 大上下文可命中 `easy-ctx>=14k→8b`）；输入 JSON 非法的 tool_use 补发 `tool_use` 事件以配对后续 `tool_result`；流结束缺 `finish_reason` 按不完整响应记 `stopReason=error`；请求侧工具集统一为 `activeRequestTools()`（`modeManager.filterTools(promptTools(tools))`），init 事件、请求 `tools`、system 工具目录三处同源，plan 模式下模型看不到 Write/Edit/Bash
 
-**Hooks**
+### Hooks
 
 - **TOFU 信任**：shell hook 首次触发询问，确认后写 `.tupigcode/hook-trust.json`（规则 hash 覆盖 event/matcher/command/timeout，任一变更重询）；拒绝不持久化，异常与超时 fail-closed；非 TTY 与 `TUPIG_HOOK_TRUST=0` 不打断；`/hooks` 查看、`/hooks clear` 清除、`/hooks reload` 手动重载，`/doctor` 列信任清单
 - **信任询问输入解析（fix #101）**：`promptHookTrust` 复用审批的 `parseApprovalAnswer` 首行解析（粘贴 `y⏎杂散内容` 不误拒）；30s 超时显式移除 data/close/end 三处 stdin listener，不残留吞后续输入
@@ -147,7 +187,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **PostRewind**：回滚成功后携带 `checkpointId + mode` 触发，失败不触发
 - **PreClear/PostClear**：`/clear` 序列为 Pre hook → 重置状态 → Post hook，hook 异常隔离，重置失败原样上抛
 
-**工具执行与并行**
+### 工具执行与并行
 
 - **并行批 fail-soft**：同批只读工具并发执行不被全局 `streaming` 互斥误伤（不安全项由 `partitionRuns` 独立成批，批间顺序执行天然互斥）；`mapWithConcurrency` 为 settled 语义，批内单任务异常只产生自己的 error tool_result 并触发 PostToolUseFailure，兄弟结果保留
 - **写工具按文件分组并行**：带 `file_path` 的写（Write/Edit/MultiEdit）相邻项合并为写组批——同文件保序串行（组内逐项 fail-soft，前项失败不连坐），异文件组间并行（并发 `TUPIG_WRITE_CONCURRENCY`，默认 4）；批段间仍顺序，非写不安全项（Bash 等）保持独立成批
@@ -160,7 +200,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **工具延迟装载**：核心集（Read/Write/Edit/Bash/Glob/Grep/TodoWrite/Question）与 `ToolSearch` 元工具常驻，其余（git / 测试 / 网页 / 子代理 / 仓库地图等）按需检索挂载，下一轮生效；`TUPIG_EXTRA_TOOLS` 显式指定与 MCP 工具保持常驻；`TUPIG_LAZY_TOOLS=0` 回退全量注入
 - **模型主动压缩**：只读工具 CompactContext，阶段完成后模型自行请求折叠（focus 透传摘要）；QueryEngine 下一轮循环前执行压缩流水线（source=model，PreCompact/PostCompact 同步触发，`/context` 可见）
 
-**权限、审查与护栏**
+### 权限、审查与护栏
 
 - **三级 diff 审查**：每轮写操作聚合为结构化 diff（自研 LCS，上下文 3），REPL 全局 a/r/s → 文件 y/n/h/q → 块 y/n 三级判定；拒绝按文件回滚（同文件多次修改回到首次之前）；超大 diff 降级为仅文件级；`TUPIG_DIFF_REVIEW=0` 关闭。plan 模式改动暂存 `.tupigcode/staging/`，`/apply` 才落盘（越界条目拒绝，落盘前自动建 `before:apply` 检查点）
 - **审批「总是允许」持久化**：审批 prompt `y/N/a`，选 `a` 推导模式（Bash 首词前缀如 `Bash(npm *)`、写工具按工具级）写入项目级 `.tupigcode/permissions.json`，后续同前缀自动放行；deny 规则、敏感路径、自修改面仍优先（敏感路径检查在规则链之前）；`/permissions [clear]` 查看与清除
@@ -170,7 +210,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **自修改面复审**：写 `.tupigcode/skills|mcp.json|config.json` 与 hooks 文件时绕过 allow 规则强制确认
 - **写路径沙箱**：`TUPIG_SANDBOX_WRITE` 白名单 / `TUPIG_SANDBOX_DENY` 黑名单
 
-**会话与状态**
+### 会话与状态
 
 - **会话恢复**：session / checkpoint 单命令回滚；自动快照（每轮与写类工具成功后，防抖 5s、上限 20 滚动，`TUPIG_AUTOSNAPSHOT=0` 关）；`/rewind [chat|code|all] [id]` 三档回卷（回对话 / 回代码 / 全回），跨进程续跑
 - **检查点按名称回滚**：`/rewind` 参数为 id-or-label，id 精确优先，label 精确匹配（同名取最新），回滚消息标注匹配方式
@@ -180,7 +220,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **知识沉淀**：memory（长期记忆）、skills（技能库，`.tupigcode/skills/` 先审后存）、reflexion（反思入库）
 - **内置技能包（10 个）**：git-workflow / git-log / gitingest / shell-command-engager / code-review / debugging / test-first / docs-sync / release-check / refactor-safe，`src/knowledge/skills/` 静态装载（build 拷贝到 dist），用户 `.tupigcode/skills/` 同名覆盖、无效回落内置，三重门禁与 3000 字目录预算对内置同样生效
 
-**MCP**
+### MCP
 
 - **接入**：`.tupigcode/mcp.json`（Claude Code 兼容）接入外部 MCP server，工具桥接为 `mcp_<server>_<tool>`，单 server 失败降级不阻塞
 - **双重审批**：server/tool 级 `approval` 白名单 + `TUPIG_MCP_APPROVAL=off|ask` 全局开关，未配置时按 mcp.json 白名单与 readOnlyHint 分级
@@ -190,10 +230,10 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **远程传输与 OAuth**：`url` + `transport: http|sse` + `headers`，`oauth:false` 关闭；`FileOAuthProvider` 本地回调收 code 后 `finishAuth` 自动重连，tokens 落 `~/.tupigcode/mcp-auth/`；`states` 暴露 connected/failed/needs_auth
 - **超时与断线自愈**：`mcp.json` 每 server 可配 `timeout`（毫秒，callTool 单次超时）；stdio 断开立即摘除该 server 的死工具，指数退避自动重连（1s→2s→…→30s 封顶，最多 5 次，同 server 不并发叠加），成功恢复工具，耗尽告警放弃，connection close 后不再重连
 
-**其他**
+### 工作模式与观测
 
 - **工作模式**：plan / act 双模式 + spec 规格驱动开发（`n8-spec`）
-- **工程护栏**：写路径沙箱、权限分级与风险分类器、自修改面复审、hooks（`TUPIG_HOOKS_FILE`）、`/doctor` 自诊断、`/init` 项目初始化、`/review` 代码评审
+- **工程护栏**：`/doctor` 自诊断、`/init` 项目初始化、`/review` 代码评审（沙箱、权限、hooks 细节见上文对应子节）
 - **wire.jsonl 原始报文**：`TUPIG_WIRE=1` 开启（默认关，零开销）——pilot 侧 `streamMessage` 记录请求与流式合并后正文，proxy 侧透传观测，JSONL 落 `.tupigcode/wire.jsonl`（`TUPIG_WIRE_FILE` / `TUPIG_WIRE_MAX_BYTES` 可调，默认 5MB 滚动裁剪），request/response 共享 `req_id`
 
 ## gameqa — Unity 自动化测试平台
@@ -219,6 +259,10 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 `web_check`（网站可用性）/ `api_check`（接口断言）/ `api_load`（k6 式性能冒烟）/
 `api_flow`（多步接口流程）/ `self_check` / `port_check` / `cert_check` / `dns_check`；
 `extra.repeat_minutes` 开启循环监控（蓝本的断链 bug 已修，服务端 worker 直读 `extra`）。
+
+### 结果解析与报告
+
+NUnit3 结果解析保留全量用例明细（`summary.cases`，含 classname/duration/message/stack/stdout，上限 2000 条、单字段 4KB）。两个报告出口：`GET /report` 轻量单文件（汇总卡片 + 近 20 次通过率 SVG 趋势 + 历史表）、`GET /allure?job=N` Allure 风格报告（Overview/Suites/Categories 三个 tab + 用例树与失败详情 + 历史切换，无外部依赖）。
 
 ### 服务端 API（30 路由）
 
@@ -267,7 +311,7 @@ CLI（llm / *-local / 任意 OpenAI/Anthropic 客户端）
 - **客户端接入**：`opencode-local` / `claude-local` / `codex-local` 三个 shim 已配好本机 provider；配到别的工具只需把 base URL 指到 `:4100`
 - 模型目录 `mlx/models/`、虚拟环境 `mlx/venv/`、日志与状态均运行时生成（gitignore）
 
-**模型清单**（`mlx/models.json`）：
+### 模型清单（`mlx/models.json`）
 
 | 别名 | 模型 | 大小 | 定位 |
 | --- | --- | --- | --- |
@@ -278,28 +322,6 @@ CLI（llm / *-local / 任意 OpenAI/Anthropic 客户端）
 
 > [!WARNING]
 > 24GB 内存机器 GPU 上限约 16GB：30B 模型需调高 MLX GPU 上限；超长上下文（5 万+ token）请求可能 OOM，长任务建议切云端 Provider（`TUPIG_PROVIDER`）。
-
-## 架构
-
-```
-                         ┌─────────────────────────────────────────┐
-   tupigcode / gameqa /      │  src/engine      QueryEngine 主链路      │
-   *-local 客户端  ──────▶│  src/tools       20+ 工具（读写/检索/执行）│
-                         │  src/session     会话/检查点/轨迹         │
-                         │  src/context     压缩/预算/RepoMap        │
-                         │  src/knowledge   记忆/技能/反思           │
-                         │  src/modes       plan·act + spec         │
-                         │  src/agents      子代理                  │
-                         │  src/services    API/沙箱/权限/容错       │
-                         └─────────────────────────────────────────┘
-
-   gameqa serve ── HTTPS :9111 ── 看板 static + REST API + 内置执行器 worker
-        ▲  poll / 上报（X-Platform-Token 可选）
-   gameqa agent ── Unity batchmode · Airtest · AI 探索 · ADB/性能/日志
-   （跨 Mac/Linux/Windows/iOS/Android；PLATFORM_INSECURE_TLS 信任自签名）
-
-   任意 OpenAI/Anthropic 客户端 ──▶ :4100 代理（三协议互转）──▶ :8080 mlx_lm.server
-```
 
 ## 项目结构
 
@@ -393,6 +415,10 @@ gameqa 环境变量见上文 [gameqa 节](#gameqa--unity-自动化测试平台)�
 3. 回归全绿 + 推送后 CI 绿 → `gh issue close <N>`（留一句修复摘要）
 
 历史 bug 查询：`gh issue list --state all`；过往决策用 `git log`。工作区不留待办文档。
+
+### 提交信息规范
+
+前缀对齐 `git log` 实际口径：`fix`（修 bug，正文必须带 `fix #<N>` 引用 issue）、`feat`（新功能）、`chore`（工程杂务、依赖、配置）、`docs`（文档）、`test`（测试）。审查要点写进提交信息正文。
 
 ## 测试与 CI
 
