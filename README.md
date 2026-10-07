@@ -222,7 +222,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 ### MCP
 
-- **接入**：`.tupigcode/mcp.json`（Claude Code 兼容）接入外部 MCP server，工具桥接为 `mcp_<server>_<tool>`，单 server 失败降级不阻塞
+- **接入**：`.tupigcode/mcp.json`（Claude Code 兼容）接入外部 MCP server，工具桥接为 `mcp_<server>_<tool>`，桥接工具直接采用 server 声明的 `inputSchema`，单 server 失败降级不阻塞
 - **双重审批**：server/tool 级 `approval` 白名单 + `TUPIG_MCP_APPROVAL=off|ask` 全局开关，未配置时按 mcp.json 白名单与 readOnlyHint 分级
 - **ToolAnnotations**：`readOnlyHint` → 只读分级；显式 `destructiveHint=true` 且非只读时审批升为 ask 强制确认（deny 优先、allow 被覆盖）；`title` 进 description 展示
 - **list_changed 动态刷新**：server 发 `notifications/tools/list_changed` 或手动 `refresh()` 时重拉 tools/list，diff 出增删与同名定义变更（description / schema / annotations 签名比较），变更即同步工具集与搜索池，刷新失败保留旧工具只告警
