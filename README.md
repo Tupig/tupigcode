@@ -30,7 +30,7 @@
   - [任务类型（Agent 侧，`extra.job_type`）](#任务类型agent-侧extrajob_type)
   - [内置执行器（服务端，`platform=web`，无需 Agent）](#内置执行器服务端platformweb无需-agent)
   - [结果解析与报告](#结果解析与报告)
-  - [服务端 API（30 路由）](#服务端-api30-路由)
+  - [服务端 API（31 路由）](#服务端-api31-路由)
   - [关键环境变量](#关键环境变量)
   - [运维脚本与部署](#运维脚本与部署)
 - [MLX 本地推理 + 协议代理](#mlx-本地推理--协议代理)
@@ -137,12 +137,16 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 | 类别 | 工具 |
 | --- | --- |
-| 读写 | `FileRead`（文本 + 图片多模态输入，png/jpg/webp/gif ≤5MB）`FileWrite` `FileEdit`（精确匹配，失败时模糊回退，容忍缩进/空白/单字符漂移，唯一命中才替换）`MultiEdit`（多组替换原子落盘，失败报「第 N 处不匹配」；extras 池经 ToolSearch 或 `TUPIG_EXTRA_TOOLS` 挂载）`DocRead` |
-| 检索 | `Grep`（ripgrep 主路径 + 内置降级；`offset` / `head_limit` 分页，截断带续取提示）`Glob` `RepoMap`（全仓地图）`similar`（语义近邻） |
-| 执行 | `Bash`（沙箱 + 安全护栏）`PackageManager` `lint` `Refactor` `Analysis` |
-| 规划 | `todo`（任务清单）`Question`（向用户澄清）`parallel`（并行子任务）`Agent`（子代理派发） |
-| 状态 | `rollback`（回滚）`state`（状态机）`Web`（联网抓取） |
+| 读写 | `Read`（文本 + 图片多模态输入，png/jpg/webp/gif ≤5MB）`Write` `Edit`（精确匹配，失败时模糊回退，容忍缩进/空白/单字符漂移，唯一命中才替换）`MultiEdit`（多组替换原子落盘，失败报「第 N 处不匹配」）`DocRead` `ImageRead`（后 3 项为 extras） |
+| 检索 | `Grep`（ripgrep 主路径 + 内置降级；`offset` / `head_limit` 分页，截断带续取提示）`Glob` `RepoMap`（全仓地图） |
+| 执行 | `Bash`（沙箱 + 安全护栏）`RunTests`（auto-test 自验证循环）`PackageInstall` `PackageUninstall` `PackageList` `RunScript`（后 4 项 extras） |
+| 规划 | `TodoWrite`（任务清单）`Question`（向用户澄清）`Agent`（子代理派发）`CompactContext`（手动压缩）`ToolSearch`（延迟装载元工具） |
+| Git | `GitStatus` `GitDiff`（默认）`GitCommit` `GitUndo`（extras） |
+| 联网 | `WebSearch`（默认）`WebFetch`（extras） |
+| 分析与重构（extras） | `CodeStats` `ListFunctions` `DependencyAnalysis` `ComplexityAnalysis` `RenameSymbol` `ExtractFunction` `MoveFile` `InlineVariable` `ExtractConstant` |
 | 扩展 | **MCP 客户端**：接入外部 MCP server，工具桥接为 `mcp_<server>_<tool>`，配置、审批、OAuth 与断线自愈见下文 MCP 节 |
+
+默认 16 + extras 19 = **35 工具**；extras 池经 `ToolSearch` 或 `TUPIG_EXTRA_TOOLS` 挂载。**内建机制（非独立工具）**：`Edit`/`Write` 失败的 Levenshtein 相近行反馈、编辑后自动 lint 检查、写盘失败回滚、写组分区并行——由读写工具内部调用。
 
 ### 上下文与压缩
 
@@ -194,7 +198,7 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 - **工具超时**：`withTimeout` 超时即 abort 本次调用的 controller 并附副作用提示（写类操作可能已部分落盘）；子代理内 tool.call 与主循环同享 `TOOL_TIMEOUT_MS`（含 `TUPIG_TOOL_TIMEOUT_MS` 覆盖），挂死工具超时返回 is_error tool_result 后任务继续；实现于 `engine/time.ts` 供两侧共用
 - **工具结果语义（fix #99）**：工具返回 `isError` 或 `output.type=error` 时 `tool_result.is_error=true` 并触发 PostToolUseFailure，不按成功处理、不快照；流报错返回前 await 在途早期派发，events 与 toolResults 不脱钩
 - **doom loop 批内去重（fix #100）**：同一批、同一轮内相同只读调用只计一次（轮界清批内集合），并行同参检索不受影响；detector 在 `submitMessage` 入口 reset，跨轮连续 ≥3 次同动作仍拦截
-- **截断续取**：统一文案 `已截断 total=N，本次显示 x~y，用 offset=… 续取`（`truncationHint`，unit 条/字符可配）；Grep 支持 `offset` 分页（越界返回「无更多结果」），WebFetch 按字符窗口 `offset` + `maxLength` 续取
+- **截断续取**：统一文案 `已截断 total=N，本次显示 x~y，用 offset=… 续取`（`truncation-hint`，unit 条/字符可配）；Grep 支持 `offset` 分页（越界返回「无更多结果」），WebFetch 按字符窗口 `offset` + `maxLength` 续取
 - **Bash 输出裁剪**：超长输出 head+tail 双端保留（both 默认 60/40，`keep=head|tail` 单端），预算 `TUPIG_BASH_OUTPUT_CHARS`（默认 50000）可调；截断标注原始大小、省略量、keep 模式，预算内原样返回
 - **auto-test**：`RunTests` 工具（默认集，只读），探测 `TUPIG_TEST_CMD` / npm test（跳过占位）/ pytest / cargo / go，失败输出回喂修复后复跑；超时 `TUPIG_TEST_TIMEOUT_MS`，输出尾部截断 4000 字符
 - **工具延迟装载**：核心集（Read/Write/Edit/Bash/Glob/Grep/TodoWrite/Question）与 `ToolSearch` 元工具常驻，其余（git / 测试 / 网页 / 子代理 / 仓库地图等）按需检索挂载，下一轮生效；`TUPIG_EXTRA_TOOLS` 显式指定与 MCP 工具保持常驻；`TUPIG_LAZY_TOOLS=0` 回退全量注入
@@ -264,9 +268,9 @@ PLATFORM_URL=https://localhost:9111 AGENT_ID=agent-1 PLATFORM=mac \
 
 NUnit3 结果解析保留全量用例明细（`summary.cases`，含 classname/duration/message/stack/stdout，上限 2000 条、单字段 4KB）。两个报告出口：`GET /report` 轻量单文件（汇总卡片 + 近 20 次通过率 SVG 趋势 + 历史表）、`GET /allure?job=N` Allure 风格报告（Overview/Suites/Categories 三个 tab + 用例树与失败详情 + 历史切换，无外部依赖）。
 
-### 服务端 API（30 路由）
+### 服务端 API（31 路由）
 
-注册 / 心跳 / 领任务（`POST /api/agent/poll`）/ 结果上报（3 次重试，poll 只认 pending）/
+注册 / 心跳 / 领任务（`GET /api/jobs/poll/{platform}`）/ 结果上报（3 次重试，poll 只认 pending）/
 产物上传（截尾 64KB，`ARTIFACT_MAX_BYTES`）/ 任务 CRUD / 取消 / Agent 列表 / 技能表 /
 MCP 代理 / OpenAI 用例生成 / Webhook 通知 / 看板静态资源；可选 `X-Platform-Token` 认证（`PLATFORM_TOKEN`）。
 
@@ -334,10 +338,10 @@ tupigcode/
 │
 ├── src/
 │   ├── index.ts               # CLI 入口（配置走环境变量，无配置文件读取）
-│   ├── engine/                # 主链路：QueryEngine prompt toolRegistry router harness mcp
+│   ├── engine/                # 主链路：QueryEngine prompt tool-registry router harness mcp
 │   ├── tools/                 # 20+ 工具实现
-│   ├── services/              # api bashSafety permissions sandbox failover errors
-│   ├── session/               # session sessionState checkpoint trajectory
+│   ├── services/              # api bash-safety permissions sandbox failover errors
+│   ├── session/               # session session-state checkpoint trajectory
 │   ├── context/               # compact rules repomap
 │   ├── knowledge/             # memory skills reflexion
 │   ├── modes/                 # plan/act + spec
@@ -346,7 +350,7 @@ tupigcode/
 │   ├── proxy/                 # 统一协议代理（convert 三协议转换 + server SSE relay）
 │   ├── gameqa/                # Unity 测试平台（store/server/builtin/agent/unity/
 │   │                          #   airtest/gameperf/ai/tls + report/allure 报告 + static 看板）
-│   ├── cli/                   # 7 个入口（tupigcode llm gameqa *-local mlx-local mlxcmd）
+│   ├── cli/                   # 7 个入口（tupigcode llm gameqa *-local mlx-local）
 │   └── git/ state/ utils/
 │
 ├── tests/                     # vitest 120 文件 / 1060 用例，按子域分 14 目录
