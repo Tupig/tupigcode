@@ -161,8 +161,8 @@ async function runUnityTestJob(job: Job, workdir: string): Promise<Outcome> {
       success: !hasErr,
       logPath: null,
       summary: hasErr
-        ? { message: "MCP execution error", error: result["error"], test_filter: testFilter }
-        : { message: "MCP test run", result, test_filter: testFilter },
+        ? { message: "MCP 执行出错", error: result["error"], test_filter: testFilter }
+        : { message: "MCP 测试运行", result, test_filter: testFilter },
       artifacts: [],
     };
   }
@@ -303,7 +303,7 @@ export async function execute(job: Job, workdir: string): Promise<Outcome> {
   const custom = await executeAgentJobType(jt, job, workdir);
   if (custom !== null) return custom;
   // 与 Rust 版一致：未命中 job_type 走占位（success=true）
-  return { success: true, logPath: null, summary: { message: "placeholder run" }, artifacts: [] };
+  return { success: true, logPath: null, summary: { message: "占位运行（未接真实执行器）" }, artifacts: [] };
 }
 
 // ---------- 主循环 ----------

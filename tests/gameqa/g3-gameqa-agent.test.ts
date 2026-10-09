@@ -298,7 +298,7 @@ describe("执行器分发", () => {
   it("未知 job_type 走占位（与 Rust 版一致）", async () => {
     const out = await execute(job({ job_type: "unknown_x" }), path.join(dir, "wu"));
     expect(out.success).toBe(true);
-    expect(out.summary["message"]).toBe("placeholder run");
+    expect(out.summary["message"]).toBe("占位运行（未接真实执行器）");
   });
 
   it("ai_exploratory 缺 prompt → 结构化失败（对齐 Rust 测试）", async () => {
