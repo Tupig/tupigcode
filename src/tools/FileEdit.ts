@@ -134,6 +134,7 @@ export const FileEditTool = buildTool<string>({
         const msg = `${r.error}\n${formatLintResult(r.lint!)}\n请修正后重试，本次替换未生效（${count} 处待替换）`;
         return { data: msg, resultForAssistant: msg, isError: true };
       }
+      pushTurnOp({ path: resolved, before: r.prev, after: next });
       const s = await stat(resolved);
       context.readFileState.set(resolved, { mtime: s.mtimeMs });
       const lintMsg = r.lint ? "\n" + formatLintResult(r.lint) : "";
@@ -147,6 +148,7 @@ export const FileEditTool = buildTool<string>({
       const msg = `${r.error}\n${formatLintResult(r.lint!)}\n请修正后重试，本次编辑未生效。`;
       return { data: msg, resultForAssistant: msg, isError: true };
     }
+    pushTurnOp({ path: resolved, before: r.prev, after: next });
 
     const s = await stat(resolved);
     context.readFileState.set(resolved, { mtime: s.mtimeMs });

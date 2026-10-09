@@ -7,6 +7,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { FileEditTool } from "../../src/tools/FileEdit";
+import { drainTurnOps, resetTurnOps } from "../../src/engine/diff-review";
 import type { ToolUseContext, CanUseToolFn } from "../../src/engine/Tool";
 
 const allow: CanUseToolFn = async () => ({ behavior: "allow" });
@@ -120,5 +121,30 @@ describe("FileEdit 模糊回退", () => {
     expect(msg).toContain("已成功编辑");
     expect(msg).not.toContain("模糊");
     expect(fs.readFileSync(p, "utf-8")).toBe('const s = "hello";\n');
+  });
+});
+
+describe("FileEdit turn ops（fix #120：主路径进 diff review）", () => {
+  it("精确匹配主路径 pushTurnOp", async () => {
+    resetTurnOps();
+    const p = path.join(dir, "t1.ts");
+    fs.writeFileSync(p, "const a = 1;\n");
+    await edit(p, "const a = 1;", "const a = 2;");
+    const ops = drainTurnOps();
+    expect(ops).toHaveLength(1);
+    expect(ops[0].path).toBe(path.resolve(p));
+    expect(ops[0].before).toBe("const a = 1;\n");
+    expect(ops[0].after).toBe("const a = 2;\n");
+  });
+
+  it("replace_all 主路径 pushTurnOp", async () => {
+    resetTurnOps();
+    const p = path.join(dir, "t2.ts");
+    fs.writeFileSync(p, "aa bb aa\n");
+    await edit(p, "aa", "XX", true);
+    const ops = drainTurnOps();
+    expect(ops).toHaveLength(1);
+    expect(ops[0].before).toBe("aa bb aa\n");
+    expect(ops[0].after).toBe("XX bb XX\n");
   });
 });
