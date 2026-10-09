@@ -359,7 +359,8 @@ tupigcode/
 │   └── gameqa/ proxy/ fixtures/
 ├── mlx/                       # 推理服务层（models/venv/logs/state 运行时 + models.json）
 ├── .tupigcode/                # 运行时技能库（先审后存）
-└── .github/workflows/ci.yml   # 门槛：tsc + vitest + build
+└── .github/                   # workflows/ci.yml 统一 CI：build → type-check-test → codeql 串行链
+                               #   actions/setup-node-npm 复用（Node 22 + npm 缓存 + npm ci）
 ```
 
 ## 配置与环境变量
@@ -453,8 +454,8 @@ gameqa 环境变量见上文 [gameqa 节](#gameqa--unity-自动化测试平台)�
 
 **命名规则**：新测试放对应子域目录，文件名用主题描述（如 `session-atomic-write.test.ts`），不强制序号；历史前缀只反映批次不反映子域——`e<N>` issue 驱动引擎批次（E1–E93 对应 issue #N）、`n<N>`/`i<N>`/`f*` 早期 A 批（内核能力/知识集成/压缩与权限）、`g<N>` gameqa 移植回归、`proxy-*` 协议代理平移——保留用于 git 与 issue 溯源。
 
-**CI**（`.github/workflows/ci.yml`，ubuntu-latest + Node 22 + ripgrep）三连：
-`tsc --noEmit` → `vitest run` → `npm run build`。本地全绿但 CI 红 → 先建 issue 再修。
+**CI**（`.github/workflows/ci.yml` 单工作流，ubuntu-24.04 + Node 22 + ripgrep）串行链：
+`build`（`npm run build` + dist artifact 保留 7 天）→ `type-check-test`（`tsc --noEmit` + `vitest run`）→ `codeql`（javascript 扫描）。纯 `*.md` 变更不触发；fork PR 跳过 codeql；同 PR 连续推送由 concurrency 取消陈旧运行。本地全绿但 CI 红 → 先建 issue 再修。
 
 ## 常见问题
 

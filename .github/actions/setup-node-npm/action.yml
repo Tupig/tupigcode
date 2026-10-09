@@ -1,0 +1,14 @@
+name: setup-node-npm
+description: Node 22 + npm 缓存 + npm ci（checkout 须由调用方先做——本地 action 依赖工作区已就位）
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      with:
+        node-version: 22
+        cache: npm
+
+    - name: 安装依赖
+      shell: bash
+      run: npm ci

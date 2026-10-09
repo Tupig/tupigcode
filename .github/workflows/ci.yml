@@ -1,34 +1,121 @@
-name: CI
+# tupigcode 统一 CI 工作流（单文件，参考 GitHubDesktop2Chinese 风格）
+# 一个工作流完成：构建、类型检查与单元测试、CodeQL 安全扫描。无部署阶段（仓库无发布配置）。
+#
+# ── 触发矩阵（与各 job 逐项对应）──────────────────────────────
+#   触发场景               build  type-check-test  codeql
+#   push main              ✓      ✓                ✓
+#   PR（目标 main，同仓）   ✓      ✓                ✓
+#   PR（fork）             ✓      ✓                -（注1）
+#   定时 每周一 UTC 00:00   ✓      ✓                ✓
+#   手动 dispatch          ✓      ✓                ✓
+#   注1: fork PR 令牌无 security-events 写权限，上传必失败，跳过
+#   防重复: push 仅绑定 main → PR 分支的推送不会二次触发（PR 由 pull_request 单路径负责）；
+#           同一 PR 连续推送由 concurrency 取消陈旧运行；纯 *.md 变更不触发
+#   边界:   build/type-check-test 不跑 schedule 之外的特殊分支——链上任一环失败即停止后续
+#
+# ── jobs 总览与依赖（严格串行 needs 链）──────────────────────
+#   1. build            npm run build + 上传 dist artifact（保留 7 天，供未来 release 复用）
+#   2. type-check-test  tsc --noEmit + vitest run（needs: build；Grep 测试需 ripgrep）
+#   3. codeql           CodeQL javascript 扫描（needs: type-check-test；github/codeql-action v4）
+#
+#   依赖链: build → type-check-test → codeql
+#   环境:   Node 22 + npm 缓存 + npm ci 由 composite action .github/actions/setup-node-npm 复用
+#   修复:   原 codeql.yml 误用 actions/codeql-action（不存在，致 "repository not found"），
+#           正确为 github/codeql-action——本文件已修正并入统一工作流，原文件删除
+#
+# ── 稳定性设计 ───────────────────────────────────────────────
+#   - runner 固定 ubuntu-24.04；第三方 actions 全部按 commit SHA 固定
+#   - 所有 job 均设 timeout-minutes；默认最小权限 contents: read，codeql job 单独提权
+#   - PR 场景 concurrency 取消陈旧运行；main/定时/手动不取消
+
+name: ci
 
 on:
   push:
     branches: [main]
+    paths-ignore: ["**/*.md"]
   pull_request:
     branches: [main]
+    paths-ignore: ["**/*.md"]
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
-  gates:
-    name: 门槛（tsc + vitest + build）
-    runs-on: ubuntu-latest
+  # ═════════════════════════════════════════════════
+  # 1. 构建（含入口 shebang/chmod 与 gameqa 静态资源拷贝）
+  # ═════════════════════════════════════════════════
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-node-npm
+
+      - name: 构建产物
+        run: npm run build
+
+      - name: 上传 dist（保留 7 天）
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          node-version: 22
-          cache: npm
+          name: dist
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  # ═════════════════════════════════════════════════
+  # 2. 类型检查 + 单元测试（tsc + vitest 双门槛）
+  # ═════════════════════════════════════════════════
+  type-check-test:
+    name: type-check-test
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: ./.github/actions/setup-node-npm
 
       - name: 安装 ripgrep（Grep 工具主路径）
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
 
-      - name: 安装依赖
-        run: npm ci
-
-      - name: 类型检查 (tsc --noEmit)
+      - name: 类型检查（tsc --noEmit）
         run: npx tsc --noEmit
 
-      - name: 单元测试 (vitest)
+      - name: 单元测试（vitest）
         run: npx vitest run
 
-      - name: 构建产物 (含入口 shebang/chmod)
-        run: npm run build
+  # ═════════════════════════════════════════════════
+  # 3. CodeQL 安全扫描（javascript 含 TypeScript；fork PR 跳过）
+  # ═════════════════════════════════════════════════
+  codeql:
+    name: codeql
+    needs: type-check-test
+    # fork PR 令牌无 security-events 写权限，跳过避免上传必失败
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: 初始化 CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          languages: javascript
+
+      - name: 分析
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          category: "/language:javascript"
