@@ -9,7 +9,7 @@ import * as path from "node:path";
 import {
   hashRule, isTrusted, recordTrusted, clearTrust, listTrust,
   ensureHookTrust, answerHookTrust, TRUST_FILE,
-} from "../../src/engine/hookTrust";
+} from "../../src/engine/hook-trust";
 import { interpretShellExit, type ShellHookConfig } from "../../src/engine/hooks";
 import { runDoctor } from "../../src/commands/diag";
 

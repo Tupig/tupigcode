@@ -4,7 +4,7 @@
 import { mkdir, readFile, writeFile, readdir, stat } from "fs/promises";
 import { mkdirSync, readFileSync, existsSync, readdirSync } from "fs";
 import { join } from "path";
-import { writeFileAtomic, writeFileAtomicSync } from "../utils/atomicWrite.js";
+import { writeFileAtomic, writeFileAtomicSync } from "../utils/atomic-write.js";
 
 export type SessionMeta = {
   id: string;

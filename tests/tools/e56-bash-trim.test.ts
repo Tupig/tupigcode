@@ -11,7 +11,7 @@ import { mkdtempSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-import { clipOutput, resolveBashOutputBudget } from "../../src/utils/clipOutput";
+import { clipOutput, resolveBashOutputBudget } from "../../src/utils/clip-output";
 import { MAX_BASH_OUTPUT_CHARS } from "../../src/engine/constants";
 import { BashTool } from "../../src/tools/Bash";
 

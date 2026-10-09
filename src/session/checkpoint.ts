@@ -7,7 +7,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { mkdir, readFile, appendFile, writeFile, rm } from "fs/promises";
 import { join } from "path";
-import { writeFileAtomic } from "../utils/atomicWrite.js";
+import { writeFileAtomic } from "../utils/atomic-write.js";
 
 const execFileAsync = promisify(execFile);
 

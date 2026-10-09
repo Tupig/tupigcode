@@ -14,7 +14,7 @@ import {
   clearAlwaysAllow,
   evaluatePersistentAllow,
   APPROVAL_FILE,
-} from "../../src/services/approvalStore";
+} from "../../src/services/approval-store";
 import { canUseTool } from "../../src/services/permissions";
 import { promptUserDecision } from "../../src/services/permissions";
 import { appStore } from "../../src/state/AppState";

@@ -4,26 +4,26 @@
  */
 import { Command } from "commander";
 import chalk from "chalk";
-import { parseOptimizeCommand, optimizePrompt, needsClarification, appendPromptStyle } from "./engine/promptOptimize.js";
+import { parseOptimizeCommand, optimizePrompt, needsClarification, appendPromptStyle } from "./engine/prompt-optimize.js";
 import { join, resolve } from "path";
 import { existsSync } from "fs";
 import { createInterface, Interface } from "readline";
-import { TurnGate } from "./services/turnGate.js";
+import { TurnGate } from "./services/turn-gate.js";
 import { snapshot, listCheckpoints, rollbackCheckpoint, rewind, autoSnapshot, pruneCheckpoints } from "./session/checkpoint.js";
 import {
   drainTurnOps, buildReview, decideGlobal, decideFile, decideHunk,
   renderFileDiff, rollbackOps, applyHunkDecision, type FileOp,
-} from "./engine/diffReview.js";
+} from "./engine/diff-review.js";
 import { applyStaged, listStaged } from "./engine/staging.js";
-import { listTrust, clearTrust } from "./engine/hookTrust.js";
-import { fireCompactPre, fireCompactPost, runClearSequence, fireRewindPost, fireNotification } from "./engine/hookEvents.js";
+import { listTrust, clearTrust } from "./engine/hook-trust.js";
+import { fireCompactPre, fireCompactPost, runClearSequence, fireRewindPost, fireNotification } from "./engine/hook-events.js";
 import { hookSystem, reloadShellHooks } from "./engine/hooks.js";
-import { createIdleNotifier, resolveIdleNotifyMs } from "./services/idleNotify.js";
+import { createIdleNotifier, resolveIdleNotifyMs } from "./services/idle-notify.js";
 import { ContextCompactor, estimateTokens } from "./context/compact/index.js";
-import { formatCompactionLine } from "./engine/compactionMeta.js";
+import { formatCompactionLine } from "./engine/compaction-meta.js";
 import { contextBreakdown } from "./context/breakdown.js";
 import { createClient, resolveModel } from "./services/api.js";
-import { getDefaultTools } from "./engine/toolRegistry.js";
+import { getDefaultTools } from "./engine/tool-registry.js";
 import { renderSystemPrompt } from "./engine/prompt.js";
 import { loadMemoriesSync } from "./knowledge/memory.js";
 import {
@@ -37,7 +37,7 @@ import { createSpec, listSpecs, loadSpec, buildWaves, parseTasks, approveSpec } 
 import { runDoctor, renderDoctor, initAgentMd, buildReviewPrompt, isValidRef } from "./commands/diag.js";
 import { buildRetroPrompt, parseReviewDecision, applyReviewDecision, extractFailures } from "./knowledge/reflexion.js";
 import { promptUserDecision } from "./services/permissions.js";
-import { loadAlwaysAllow, clearAlwaysAllow } from "./services/approvalStore.js";
+import { loadAlwaysAllow, clearAlwaysAllow } from "./services/approval-store.js";
 import type Anthropic from "@anthropic-ai/sdk";
 import { query, interruptActiveTurn, activeTurnInterrupted, type SDKMessage } from "./engine/QueryEngine.js";
 import { appStore, adoptSessionId } from "./state/AppState.js";

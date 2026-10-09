@@ -10,7 +10,7 @@ import { PassThrough } from "node:stream";
 import { createInterface } from "node:readline";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { TurnGate } from "../../src/services/turnGate";
+import { TurnGate } from "../../src/services/turn-gate";
 
 describe("TurnGate", () => {
   it("enter 成功后忙，exit 后可重入；不可嵌套", () => {

@@ -12,7 +12,7 @@ import { safePath } from "../utils/path.js";
 import { runPostEditLint, formatLintResult } from "./lint.js";
 import { writeWithRollback } from "./rollback.js";
 import { resolveSandboxPolicy, checkPath } from "../services/sandbox.js";
-import { pushTurnOp } from "../engine/diffReview.js";
+import { pushTurnOp } from "../engine/diff-review.js";
 import { previewEdit } from "./FileEdit.js";
 
 const MultiEditItem = z.object({

@@ -3,19 +3,19 @@
  */
 import type { Tool, PermissionResult } from "../engine/Tool.js";
 import type { ToolPermissionContext } from "../state/AppState.js";
-import { classifyBash } from "./bashSafety.js";
+import { classifyBash } from "./bash-safety.js";
 import { getMcpApproval } from "../engine/mcp.js";
 import { resolve } from "path";
 import { appStore } from "../state/AppState.js";
-import { withPromptLock } from "./promptLock.js";
+import { withPromptLock } from "./prompt-lock.js";
 import { planRerouteTarget, ensureStagedSeed } from "../engine/staging.js";
 import chalk from "chalk";
-import { evaluatePersistentAllow, deriveAlwaysPattern, addAlwaysAllow } from "./approvalStore.js";
-import { fireNotification } from "../engine/hookEvents.js";
+import { evaluatePersistentAllow, deriveAlwaysPattern, addAlwaysAllow } from "./approval-store.js";
+import { fireNotification } from "../engine/hook-events.js";
 import { readFile } from "fs/promises";
 import { resolve as resolvePath } from "path";
 import { previewEdit } from "../tools/FileEdit.js";
-import { renderOpsPreview } from "../engine/diffReview.js";
+import { renderOpsPreview } from "../engine/diff-review.js";
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

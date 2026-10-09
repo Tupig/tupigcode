@@ -29,8 +29,8 @@ import { TodoWriteTool } from "../tools/todo.js";
 import { AgentTool } from "../tools/Agent.js";
 import { RepoMapTool } from "../tools/RepoMap.js";
 import { CompactContextTool } from "../tools/CompactContext.js";
-import { RunTestsTool } from "../tools/testRun.js";
-import { ToolSearchTool } from "./lazyTools.js";
+import { RunTestsTool } from "../tools/test-run.js";
+import { ToolSearchTool } from "./lazy-tools.js";
 
 export function getDefaultTools(): Tool[] {
   return [

@@ -10,7 +10,7 @@ import { runPostEditLint, formatLintResult } from "./lint.js";
 import { formatNoMatchFeedback, fuzzyLocate } from "./similar.js";
 import { writeWithRollback } from "./rollback.js";
 import { resolveSandboxPolicy, checkPath } from "../services/sandbox.js";
-import { pushTurnOp } from "../engine/diffReview.js";
+import { pushTurnOp } from "../engine/diff-review.js";
 
 export const FileEditInput = z.object({
   file_path: z.string().describe("文件路径"),

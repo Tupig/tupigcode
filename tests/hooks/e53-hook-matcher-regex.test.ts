@@ -13,7 +13,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 import { hookSystem, loadShellHooks, type ShellHookConfig } from "../../src/engine/hooks";
-import { hashRule } from "../../src/engine/hookTrust";
+import { hashRule } from "../../src/engine/hook-trust";
 
 beforeAll(() => { process.env.TUPIG_MOCK = "1"; });
 beforeEach(() => { hookSystem.clear(); });

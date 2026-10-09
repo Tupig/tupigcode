@@ -12,8 +12,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 import { MultiEditTool } from "../../src/tools/MultiEdit";
-import { getExtraTools, resolveExtraTools, getDefaultTools } from "../../src/engine/toolRegistry";
-import { resetLazyStore, setSearchPool, searchDeferred } from "../../src/engine/lazyTools";
+import { getExtraTools, resolveExtraTools, getDefaultTools } from "../../src/engine/tool-registry";
+import { resetLazyStore, setSearchPool, searchDeferred } from "../../src/engine/lazy-tools";
 
 let dir = "";
 const ctx = () => ({ workDir: dir, readFileState: new Map() }) as any;

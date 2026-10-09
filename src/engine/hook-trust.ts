@@ -11,7 +11,7 @@ import { mkdirSync, readFileSync, writeFileSync, unlinkSync } from "fs";
 import { dirname, join } from "path";
 import chalk from "chalk";
 import type { ShellHookConfig } from "./hooks.js";
-import { withPromptLock } from "../services/promptLock.js";
+import { withPromptLock } from "../services/prompt-lock.js";
 import { parseApprovalAnswer } from "../services/permissions.js";
 
 export const TRUST_FILE = join(".tupigcode", "hook-trust.json");

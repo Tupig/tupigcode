@@ -10,7 +10,7 @@ import {
   pushTurnOp, drainTurnOps, resetTurnOps,
   buildReview, decideGlobal, decideFile, decideHunk,
   selectHunks, rollbackOps, renderFileDiff, type FileOp,
-} from "../../src/engine/diffReview";
+} from "../../src/engine/diff-review";
 import {
   planRerouteTarget, stagingRoot, stageWrite, listStaged, applyStaged, discardStaged, ensureStagedSeed,
 } from "../../src/engine/staging";

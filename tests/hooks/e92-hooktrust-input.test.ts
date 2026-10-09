@@ -43,7 +43,7 @@ async function withPrompt(fn: () => Promise<void>): Promise<void> {
 describe("粘贴多行首行解析（与审批 #92 同口径）", () => {
   it("`y⏎其它文本` → true（按首行判定）", async () => {
     await withPrompt(async () => {
-      const { promptHookTrust } = await import("../../src/engine/hookTrust");
+      const { promptHookTrust } = await import("../../src/engine/hook-trust");
       const p = promptHookTrust(hook);
       await new Promise((r) => setTimeout(r, 30));
       process.stdin.emit("data", "y\nsome pasted junk\nmore");
@@ -53,7 +53,7 @@ describe("粘贴多行首行解析（与审批 #92 同口径）", () => {
 
   it("`YES  `（尾随空格/大小写）→ true", async () => {
     await withPrompt(async () => {
-      const { promptHookTrust } = await import("../../src/engine/hookTrust");
+      const { promptHookTrust } = await import("../../src/engine/hook-trust");
       const p = promptHookTrust(hook);
       await new Promise((r) => setTimeout(r, 30));
       process.stdin.emit("data", "YES  \n");
@@ -63,7 +63,7 @@ describe("粘贴多行首行解析（与审批 #92 同口径）", () => {
 
   it("首行非肯定（`n⏎y`）→ false", async () => {
     await withPrompt(async () => {
-      const { promptHookTrust } = await import("../../src/engine/hookTrust");
+      const { promptHookTrust } = await import("../../src/engine/hook-trust");
       const p = promptHookTrust(hook);
       await new Promise((r) => setTimeout(r, 30));
       process.stdin.emit("data", "n\ny");
@@ -73,7 +73,7 @@ describe("粘贴多行首行解析（与审批 #92 同口径）", () => {
 
   it("空行首行（`\\ny`）→ false（首行为空按拒绝）", async () => {
     await withPrompt(async () => {
-      const { promptHookTrust } = await import("../../src/engine/hookTrust");
+      const { promptHookTrust } = await import("../../src/engine/hook-trust");
       const p = promptHookTrust(hook);
       await new Promise((r) => setTimeout(r, 30));
       process.stdin.emit("data", "\ny");
@@ -85,7 +85,7 @@ describe("粘贴多行首行解析（与审批 #92 同口径）", () => {
 describe("30s 超时后 stdin listener 全清", () => {
   it("超时 resolve → data/close/end 三处 listener 数回到基线", async () => {
     await withPrompt(async () => {
-      const { promptHookTrust } = await import("../../src/engine/hookTrust");
+      const { promptHookTrust } = await import("../../src/engine/hook-trust");
       const base = countTrustListeners();
       vi.useFakeTimers();
       try {
@@ -112,7 +112,7 @@ describe("30s 超时后 stdin listener 全清", () => {
 
   it("超时后 stdin 再来数据 → 无 hookTrust listener 消费（数量不增、不误 pause）", async () => {
     await withPrompt(async () => {
-      const { promptHookTrust } = await import("../../src/engine/hookTrust");
+      const { promptHookTrust } = await import("../../src/engine/hook-trust");
       const base = countTrustListeners();
       vi.useFakeTimers();
       try {

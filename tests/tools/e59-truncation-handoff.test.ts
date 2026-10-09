@@ -10,7 +10,7 @@ import { mkdtempSync, writeFileSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-import { truncationHint } from "../../src/utils/truncationHint";
+import { truncationHint } from "../../src/utils/truncation-hint";
 import { GrepTool } from "../../src/tools/Grep";
 import { WebFetchTool } from "../../src/tools/Web";
 

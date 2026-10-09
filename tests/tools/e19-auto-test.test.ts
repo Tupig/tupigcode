@@ -5,8 +5,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { detectTestCommand, runAutoTest } from "../../src/tools/testRun";
-import { RunTestsTool } from "../../src/tools/testRun";
+import { detectTestCommand, runAutoTest } from "../../src/tools/test-run";
+import { RunTestsTool } from "../../src/tools/test-run";
 import type { ToolUseContext, CanUseToolFn } from "../../src/engine/Tool";
 
 let dir: string;

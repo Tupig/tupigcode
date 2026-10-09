@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { HookSystem, type HookContext } from "../../src/engine/hooks";
-import { runClearSequence } from "../../src/engine/hookEvents";
+import { runClearSequence } from "../../src/engine/hook-events";
 
 function ctx(): HookContext {
   return { turnNumber: 0, sessionId: "s-clear" };

@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { canUseTool, touchesSensitivePath } from "../../src/services/permissions";
-import { classifyBash } from "../../src/services/bashSafety";
+import { classifyBash } from "../../src/services/bash-safety";
 import type { ToolPermissionContext } from "../../src/state/AppState";
 
 function ctx(mode: ToolPermissionContext["mode"]): ToolPermissionContext {

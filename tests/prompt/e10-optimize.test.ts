@@ -2,7 +2,7 @@
  * E10 提示词优化（workbuddy 类）：/optimize + 规则式结构补全
  */
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { optimizePrompt, parseOptimizeCommand, needsClarification, appendPromptStyle } from "../../src/engine/promptOptimize";
+import { optimizePrompt, parseOptimizeCommand, needsClarification, appendPromptStyle } from "../../src/engine/prompt-optimize";
 import fs from "fs";
 import os from "os";
 import path from "path";

@@ -10,7 +10,7 @@ import {
   fireStop,
   fireCompact,
   fireLifecycle,
-} from "../../src/engine/hookEvents";
+} from "../../src/engine/hook-events";
 
 const ctx = (over: Partial<HookContext> = {}): HookContext => ({
   turnNumber: 1,

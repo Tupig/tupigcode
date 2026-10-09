@@ -62,7 +62,7 @@ describe("审批串行化（#64）", () => {
     try {
       const p1 = promptUserDecision("Bash", { command: "first" });
       await sleep(40);
-      const { promptHookTrust } = await import("../../src/engine/hookTrust");
+      const { promptHookTrust } = await import("../../src/engine/hook-trust");
       const p2 = promptHookTrust({ event: "PreToolUse", command: "echo hi" } as any);
       await sleep(40);
       expect(logs.filter((l) => l.includes("hook 首次触发"))).toHaveLength(0); // 锁内排队中

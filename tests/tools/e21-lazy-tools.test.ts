@@ -6,8 +6,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   CORE_TOOL_NAMES, lazyEnabled, resetLazyStore, setExplicitExtras, setSearchPool,
   markLoaded, promptTools, searchDeferred, ToolSearchTool,
-} from "../../src/engine/lazyTools";
-import { getDefaultTools } from "../../src/engine/toolRegistry";
+} from "../../src/engine/lazy-tools";
+import { getDefaultTools } from "../../src/engine/tool-registry";
 import type { ToolUseContext, CanUseToolFn } from "../../src/engine/Tool";
 
 const allow: CanUseToolFn = async () => ({ behavior: "allow" as const });

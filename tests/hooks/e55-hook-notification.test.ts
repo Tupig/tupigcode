@@ -13,8 +13,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 import { hookSystem, loadShellHooks } from "../../src/engine/hooks";
-import { fireNotification } from "../../src/engine/hookEvents";
-import { createIdleNotifier } from "../../src/services/idleNotify";
+import { fireNotification } from "../../src/engine/hook-events";
+import { createIdleNotifier } from "../../src/services/idle-notify";
 import { promptUserDecision } from "../../src/services/permissions";
 
 beforeAll(() => {

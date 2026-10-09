@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { HookSystem, type HookContext } from "../../src/engine/hooks";
-import { firePermissionResult } from "../../src/engine/hookEvents";
+import { firePermissionResult } from "../../src/engine/hook-events";
 
 function base(): HookContext {
   return { turnNumber: 1, sessionId: "s-perm" };

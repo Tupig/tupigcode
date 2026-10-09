@@ -14,7 +14,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 import { HookSystem, type ShellHookConfig } from "../../src/engine/hooks.js";
-import { hashRule } from "../../src/engine/hookTrust.js";
+import { hashRule } from "../../src/engine/hook-trust.js";
 
 beforeAll(() => {
   process.env.TUPIG_MOCK = "1";

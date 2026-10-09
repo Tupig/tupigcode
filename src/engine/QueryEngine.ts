@@ -9,9 +9,9 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import type { Tool, ToolUseContext, CanUseToolFn } from "./Tool.js";
 import { anthropicToolResultContent, isToolResultError } from "./Tool.js";
 import { connectMcpServers } from "./mcp.js";
-import { getDefaultTools, getToolByName, resolveExtraTools } from "./toolRegistry.js";
-import { promptTools, setExplicitExtras, setSearchPool, markLoaded } from "./lazyTools.js";
-import { resetTurnOps } from "./diffReview.js";
+import { getDefaultTools, getToolByName, resolveExtraTools } from "./tool-registry.js";
+import { promptTools, setExplicitExtras, setSearchPool, markLoaded } from "./lazy-tools.js";
+import { resetTurnOps } from "./diff-review.js";
 import { createClient, streamMessage, UsageTracker, type ApiClient } from "../services/api.js";
 import { resolveHarness, parseXmlToolCalls } from "./harness.js";
 import { resolveFallback, resolveFallbackModel, streamWithFailover } from "../services/failover.js";
@@ -21,14 +21,14 @@ import { appendFileSync, mkdirSync } from "fs";
 import { join, resolve as resolvePath } from "path";
 import { mapWithConcurrency, partitionRuns, partitionWriteGroups } from "../tools/parallel.js";
 import { canUseTool, promptUserDecision } from "../services/permissions.js";
-import { deriveAlwaysPattern } from "../services/approvalStore.js";
+import { deriveAlwaysPattern } from "../services/approval-store.js";
 import { hookSystem, loadShellHooks, initShellHooks, reloadShellHooksIfChanged, type HookMatcher } from "./hooks.js";
-import { firePermissionResult, firePostToolUseFailure, fireModeChange } from "./hookEvents.js";
-import { formatCompactionLine } from "./compactionMeta.js";
-import { ensureHookTrust, answerHookTrust, promptHookTrust } from "./hookTrust.js";
+import { firePermissionResult, firePostToolUseFailure, fireModeChange } from "./hook-events.js";
+import { formatCompactionLine } from "./compaction-meta.js";
+import { ensureHookTrust, answerHookTrust, promptHookTrust } from "./hook-trust.js";
 import { getLineage } from "./lineage.js";
-import { OverflowRecovery, MAX_OVERFLOW_RETRIES } from "./overflowRecovery.js";
-import { fireSessionStart, fireStop, fireCompactPre, fireCompactPost, fireUserPromptSubmit } from "./hookEvents.js";
+import { OverflowRecovery, MAX_OVERFLOW_RETRIES } from "./overflow-recovery.js";
+import { fireSessionStart, fireStop, fireCompactPre, fireCompactPost, fireUserPromptSubmit } from "./hook-events.js";
 import { ContextCompactor, LADDER_MICRO } from "../context/compact/index.js";
 import { appStore } from "../state/AppState.js";
 import { MAX_CONTEXT_TOKENS, TOOL_TIMEOUT_MS, resolveWriteConcurrency } from "./constants.js";
@@ -48,7 +48,7 @@ const WRITE_SNAP_TOOLS = new Set(["Write", "Edit", "NotebookEdit", "Bash"]);
 import {
   createSessionState,
   generateSessionId, type SessionState,
-} from "../session/sessionState.js";
+} from "../session/session-state.js";
 
 export type SDKMessage =
   | { type: "assistant"; message: { content: Array<{ type: string; [key: string]: unknown }> } }

@@ -2,7 +2,7 @@
  * E5 工具裁剪：默认集 8 核心 + Web + Question；重构/分析/包管理入 extras
  */
 import { describe, expect, it } from "vitest";
-import { getDefaultTools, getExtraTools, getToolByName } from "../../src/engine/toolRegistry";
+import { getDefaultTools, getExtraTools, getToolByName } from "../../src/engine/tool-registry";
 
 describe("默认工具集（裁剪 26→13，N7 TodoWrite / N6 Agent / N9 RepoMap）", () => {
   const names = getDefaultTools().map((t) => t.name);
@@ -43,7 +43,7 @@ describe("extras 可选工具", () => {
     expect(names.some((n) => def.has(n))).toBe(false);
   });
   it("TUPIG_EXTRA_TOOLS=webfetch,gitcommit 精确启用", async () => {
-    const { resolveExtraTools } = await import("../../src/engine/toolRegistry");
+    const { resolveExtraTools } = await import("../../src/engine/tool-registry");
     process.env.TUPIG_EXTRA_TOOLS = "WebFetch,GitCommit";
     try {
       const extra = resolveExtraTools().map((t) => t.name);

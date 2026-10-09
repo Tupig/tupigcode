@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { renderSystemPrompt } from "../../src/engine/prompt";
-import { getDefaultTools } from "../../src/engine/toolRegistry";
+import { getDefaultTools } from "../../src/engine/tool-registry";
 
 describe("renderSystemPrompt", () => {
   const tools = getDefaultTools();

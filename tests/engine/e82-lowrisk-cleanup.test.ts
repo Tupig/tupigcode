@@ -86,7 +86,7 @@ describe("autoSnapshot 并发防抖（issue #92）", () => {
 
 describe("sessionState 降级接线（issue #92）", () => {
   it("sessionState.ts 不导出 loadSession/listSessions", async () => {
-    const mod = await import("../../src/session/sessionState");
+    const mod = await import("../../src/session/session-state");
     expect(mod.loadSession).toBeUndefined();
     expect(mod.listSessions).toBeUndefined();
     expect(typeof mod.generateSessionId).toBe("function");
@@ -100,7 +100,7 @@ describe("sessionState 降级接线（issue #92）", () => {
   });
 
   it("SessionState 仅保留活字段 sessionId", async () => {
-    const st = await import("../../src/session/sessionState");
+    const st = await import("../../src/session/session-state");
     const s = st.createSessionState("s-only");
     expect(s.sessionId).toBe("s-only");
     expect(Object.keys(s)).toEqual(["sessionId"]);

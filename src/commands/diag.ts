@@ -2,10 +2,10 @@
  * diag/index.ts — /doctor 体检、/init 生成 AGENTS.md、/review 评审 prompt（N11 / A22）
  */
 import { existsSync, readFileSync, statSync, writeFileSync, readdirSync } from "fs";
-import { listTrust } from "../engine/hookTrust.js";
+import { listTrust } from "../engine/hook-trust.js";
 import { join } from "path";
 import { resolveProvider, resolveModel } from "../services/api.js";
-import { getDefaultTools } from "../engine/toolRegistry.js";
+import { getDefaultTools } from "../engine/tool-registry.js";
 import { loadSkills } from "../knowledge/skills.js";
 import { parseAgentFile } from "../agents/agents.js";
 import { MAX_CONTEXT_TOKENS } from "../engine/constants.js";

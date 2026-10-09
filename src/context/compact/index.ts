@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ApiClient } from "../../services/api.js";
 import { chatUrl } from "../../services/api.js";
 import { ADAPTIVE_ITERATIONS_CAP, DEFAULT_MAX_CONTEXT_TOKENS, TOKEN_BYTES_PER_TOKEN } from "../../engine/constants.js";
-import { setCompactionRecord } from "../../engine/compactionMeta.js";
+import { setCompactionRecord } from "../../engine/compaction-meta.js";
 
 const SUMMARY_MAX_TOKENS = 768;
 const SUMMARY_TIMEOUT_MS = 30_000;

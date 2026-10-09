@@ -8,7 +8,7 @@ import {
   isContextOverflow,
   MAX_OVERFLOW_RETRIES,
   OverflowRecovery,
-} from "../../src/engine/overflowRecovery";
+} from "../../src/engine/overflow-recovery";
 import { ContextCompactor, estimateTokens } from "../../src/context/compact/index";
 import type { ApiClient } from "../../src/services/api";
 

@@ -11,7 +11,7 @@ import { mkdtempSync, writeFileSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-import { renderOpsPreview } from "../../src/engine/diffReview";
+import { renderOpsPreview } from "../../src/engine/diff-review";
 import { previewEdit } from "../../src/tools/FileEdit";
 import { buildApprovalPreview, promptUserDecision } from "../../src/services/permissions";
 import { appStore } from "../../src/state/AppState";

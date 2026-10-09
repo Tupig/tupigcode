@@ -10,7 +10,7 @@ import { safePath } from "../utils/path.js";
 import { runPostEditLint, formatLintResult } from "./lint.js";
 import { writeWithRollback } from "./rollback.js";
 import { resolveSandboxPolicy, checkPath } from "../services/sandbox.js";
-import { pushTurnOp } from "../engine/diffReview.js";
+import { pushTurnOp } from "../engine/diff-review.js";
 
 export const FileWriteInput = z.object({
   file_path: z.string().describe("文件路径"),

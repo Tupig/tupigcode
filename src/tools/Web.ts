@@ -6,7 +6,7 @@
  */
 import { z } from "zod";
 import { defineTool } from "../engine/Tool.js";
-import { truncationHint } from "../utils/truncationHint.js";
+import { truncationHint } from "../utils/truncation-hint.js";
 
 /**
  * Web 搜索工具

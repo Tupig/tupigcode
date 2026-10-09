@@ -12,7 +12,7 @@ const CLEAN_ENV = vi.hoisted(() => {
   return clean;
 });
 import { HookSystem, type HookContext } from "../../src/engine/hooks";
-import { firePostToolUseFailure } from "../../src/engine/hookEvents";
+import { firePostToolUseFailure } from "../../src/engine/hook-events";
 
 function base(): HookContext {
   return { turnNumber: 3, sessionId: "s-fail" };

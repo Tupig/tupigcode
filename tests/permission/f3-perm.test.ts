@@ -2,7 +2,7 @@
  * F3 权限分级：Bash 危险度分类（A7：CodeBuddy auto/Kimi 分级）
  */
 import { describe, expect, it } from "vitest";
-import { classifyBash } from "../../src/services/bashSafety";
+import { classifyBash } from "../../src/services/bash-safety";
 import { canUseTool } from "../../src/services/permissions";
 import type { ToolPermissionContext } from "../../src/state/AppState";
 

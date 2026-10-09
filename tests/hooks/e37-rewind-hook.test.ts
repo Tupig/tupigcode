@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { HookSystem, type HookContext } from "../../src/engine/hooks";
-import { fireRewindPost } from "../../src/engine/hookEvents";
+import { fireRewindPost } from "../../src/engine/hook-events";
 
 function base(): HookContext {
   return { turnNumber: 0, sessionId: "s-rewind" };

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ContextCompactor, estimateTokens } from "../../src/context/compact/index";
 import { appStore } from "../../src/state/AppState";
-import { formatCompactionLine } from "../../src/engine/compactionMeta";
+import { formatCompactionLine } from "../../src/engine/compaction-meta";
 import type { ApiClient } from "../../src/services/api";
 
 const mockClient: ApiClient = { type: "mock" };

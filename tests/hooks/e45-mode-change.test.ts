@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { HookSystem, type HookContext } from "../../src/engine/hooks";
-import { fireModeChange } from "../../src/engine/hookEvents";
+import { fireModeChange } from "../../src/engine/hook-events";
 
 function base(): HookContext {
   return { turnNumber: 0, sessionId: "s-mode" };

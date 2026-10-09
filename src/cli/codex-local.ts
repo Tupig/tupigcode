@@ -2,7 +2,7 @@
 /**
  * cli/codex-local.ts — 用本地 MLX 模型运行 Codex CLI（原 bin/codex-local）
  */
-import { launchAgent } from "./agentLocal.js";
+import { launchAgent } from "./agent-local.js";
 import { die } from "./common.js";
 
 launchAgent({
