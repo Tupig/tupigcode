@@ -581,13 +581,21 @@ export function createGameqaServer(store: Store, staticDir: string): (req: http.
       }
     };
 
-    // tokenAuth：PLATFORM_TOKEN 设置后，除 health/version 外的 /api/* 需要 X-Platform-Token
+    // tokenAuth：PLATFORM_TOKEN 设置后，/api/*（除 health/version）与报告页需要 token（fix #117）
     const token = process.env["PLATFORM_TOKEN"] ?? "";
-    if (token !== "" && pathname.startsWith("/api/") && pathname !== "/api/health" && pathname !== "/api/version") {
-      const got = (req.headers["x-platform-token"] as string | undefined) ?? "";
-      if (!tokenEqual(got, token)) {
-        writeDetail(res, 401, "unauthorized: missing or invalid X-Platform-Token");
-        return;
+    if (token !== "") {
+      const isApi =
+        pathname.startsWith("/api/") && pathname !== "/api/health" && pathname !== "/api/version";
+      const isReportPage = pathname === "/report" || pathname === "/allure";
+      if (isApi || isReportPage) {
+        let got = (req.headers["x-platform-token"] as string | undefined) ?? "";
+        if (got === "" && isReportPage) {
+          got = new URL(req.url ?? "/", "http://localhost").searchParams.get("token") ?? "";
+        }
+        if (!tokenEqual(got, token)) {
+          writeDetail(res, 401, "unauthorized: missing or invalid X-Platform-Token");
+          return;
+        }
       }
     }
     void proceed();

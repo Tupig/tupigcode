@@ -279,9 +279,11 @@ MCP 代理 / OpenAI 用例生成 / Webhook 通知 / 看板静态资源；可选 
 | 变量 | 侧 | 说明 |
 | --- | --- | --- |
 | `PORT` / `DATA_DIR` / `STATIC_DIR` | serve | 端口（默认 9111）/ 数据目录 / 看板目录（缺省自动定位） |
+| `GAMEQA_HOST` | serve | 监听地址（默认 `127.0.0.1` 仅环回；跨机访问须设 `0.0.0.0`） |
+| `GAMEQA_INSECURE` | serve | `1` = 豁免「非环回必须带 `PLATFORM_TOKEN`」启动闸（仅限可信内网） |
 | `TLS_MODE` | serve | `auto`（自签名/用户证书，默认）\| `off`（明文，仅限可信内网） |
 | `TLS_CERT` / `TLS_KEY` | serve | 用户证书（优先；自签名存 `data/tls/`，跨重启复用，key 0600） |
-| `PLATFORM_TOKEN` | serve | 启用 `X-Platform-Token` API 认证（公网部署必设） |
+| `PLATFORM_TOKEN` | serve | `X-Platform-Token` 认证（覆盖 `/api/*` 与 `/report` `/allure`）；`GAMEQA_HOST` 非环回时必设 |
 | `STALE_MINUTES` | serve | running 任务超时判 Agent 失联标失败（默认 30） |
 | `PLATFORM_URL` | agent | 编排服务地址（默认 `http://localhost:9111`） |
 | `AGENT_ID` / `AGENT_SKILLS` / `AGENT_WORKDIR` | agent | 标识 / 技能（逗号分隔，任务 `required_skills` 须为其子集）/ 工作目录 |

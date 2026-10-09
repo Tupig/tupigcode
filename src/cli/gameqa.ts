@@ -48,6 +48,19 @@ function serve(opts: ServeOpts): void {
   }
   if (opts.token !== undefined) process.env["PLATFORM_TOKEN"] = opts.token;
 
+  // 绑定面管控（fix #117）：默认仅环回；非环回必须有 token（或显式 GAMEQA_INSECURE=1）
+  const host = envOr("GAMEQA_HOST", "127.0.0.1");
+  const isLoopback = host === "127.0.0.1" || host === "localhost" || host === "::1";
+  if (!isLoopback && (process.env["PLATFORM_TOKEN"] ?? "") === "") {
+    if (process.env["GAMEQA_INSECURE"] !== "1") {
+      console.error(
+        "[启动] 拒绝启动：GAMEQA_HOST 非环回且未设 PLATFORM_TOKEN——无鉴权的编排服务可被同网段注册假 Agent 触发 RCE。请设置 token（--token/PLATFORM_TOKEN），或显式 GAMEQA_INSECURE=1 豁免",
+      );
+      process.exit(1);
+    }
+    console.warn("[启动][警告] GAMEQA_INSECURE=1：非环回监听且无鉴权——仅限可信内网");
+  }
+
   const store = new Store(dataDir);
   const handler = createGameqaServer(store, staticDir);
 
@@ -93,9 +106,9 @@ function serve(opts: ServeOpts): void {
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-  srv.listen(Number(port), () => {
+  srv.listen(Number(port), host, () => {
     console.log(
-      `[启动] gameqa 编排服务 ${VERSION} 监听 ${scheme}://localhost:${port}（数据目录 ${dataDir}，静态资源 ${staticDir}）`,
+      `[启动] gameqa 编排服务 ${VERSION} 监听 ${scheme}://${host}:${port}（数据目录 ${dataDir}，静态资源 ${staticDir}）`,
     );
   });
   srv.on("error", (err) => {

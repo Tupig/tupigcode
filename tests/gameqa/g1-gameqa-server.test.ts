@@ -91,6 +91,21 @@ describe("Agent 注册 / 心跳 / 认证", () => {
     expect((await api("GET", "/api/version")).status).toBe(200);
   });
 
+  it("PLATFORM_TOKEN：报告页 /report /allure 也要求令牌（header 或 ?token=）（fix #117）", async () => {
+    process.env["PLATFORM_TOKEN"] = "sekrit";
+    const page = (p: string, headers: Record<string, string> = {}): Promise<Response> =>
+      fetch(base + p, { headers });
+    expect((await page("/report")).status).toBe(401);
+    expect((await page("/allure")).status).toBe(401);
+    expect((await page("/report", { "X-Platform-Token": "sekrit" })).status).toBe(200);
+    expect((await page("/report", { "X-Platform-Token": "wrong" })).status).toBe(401);
+    expect((await fetch(base + "/allure?token=sekrit")).status).toBe(200);
+    expect((await fetch(base + "/allure?token=wrong")).status).toBe(401);
+    // 无 token 模式下报告页照常开放
+    delete process.env["PLATFORM_TOKEN"];
+    expect((await page("/report")).status).toBe(200);
+  });
+
   it("Content-Type 非 JSON → 415；超 1MB → 413", async () => {
     const r1 = await fetch(base + "/api/jobs", { method: "POST", headers: { "Content-Type": "text/plain" }, body: "{}" });
     expect(r1.status).toBe(415);
