@@ -20,3 +20,4 @@ __pycache__/
 # agent 运行状态
 .tupigcode/
 /mlx/state/
+coverage/
