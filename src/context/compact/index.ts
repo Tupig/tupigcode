@@ -49,10 +49,75 @@ export function extractToolClues(messages: Anthropic.MessageParam[], max = CLUE_
       if (seen.has(line)) continue;
       seen.add(line);
       out.push(line);
-      if (out.length >= max) return out;
+      if (out.length >= max) break;
     }
+    if (out.length >= max) break;
   }
   return out;
+}
+
+/**
+ * 压缩后消毒：剔除无配对的 tool_result，未被下一步 user 消费的 tool_use 以占位文本替换
+ * （fix #119——snip/microcompact/contextCollapse 切片会破坏配对，API 对悬挂块直接 400 且不可重试）
+ */
+export function sanitizeToolPairing(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  const isObj = (b: unknown): b is Record<string, unknown> =>
+    typeof b === "object" && b !== null;
+  const useIdsOf = (m: Anthropic.MessageParam): string[] => {
+    if (!Array.isArray(m.content)) return [];
+    return (m.content as unknown[])
+      .filter((b): b is Record<string, unknown> => isObj(b) && b["type"] === "tool_use" && typeof b["id"] === "string")
+      .map((b) => b["id"] as string);
+  };
+  const resultIdsOf = (m: Anthropic.MessageParam): string[] => {
+    if (!Array.isArray(m.content)) return [];
+    return (m.content as unknown[])
+      .filter(
+        (b): b is Record<string, unknown> =>
+          isObj(b) && b["type"] === "tool_result" && typeof b["tool_use_id"] === "string",
+      )
+      .map((b) => b["tool_use_id"] as string);
+  };
+
+  const removeIds = new Set<string>();
+  const seenUse = new Set<string>();
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    const useIds = msg.role === "assistant" ? useIdsOf(msg) : [];
+    for (const id of useIds) seenUse.add(id);
+    if (useIds.length > 0) {
+      const next = messages[i + 1];
+      const got = next !== undefined && next.role === "user" ? new Set(resultIdsOf(next)) : new Set<string>();
+      for (const id of useIds) if (!got.has(id)) removeIds.add(id);
+    }
+    if (msg.role === "user") {
+      for (const id of resultIdsOf(msg)) if (!seenUse.has(id)) removeIds.add(id);
+    }
+  }
+  if (removeIds.size === 0) return messages;
+
+  return messages.map((msg) => {
+    if (!Array.isArray(msg.content)) return msg;
+    let touched = false;
+    const content: unknown[] = [];
+    for (const b of msg.content as unknown[]) {
+      if (isObj(b) && b["type"] === "tool_use" && typeof b["id"] === "string" && removeIds.has(b["id"])) {
+        touched = true;
+        content.push({ type: "text", text: "[已省略被截断的工具调用]" });
+        continue;
+      }
+      if (isObj(b) && b["type"] === "tool_result" && typeof b["tool_use_id"] === "string" && removeIds.has(b["tool_use_id"])) {
+        touched = true;
+        continue;
+      }
+      content.push(b);
+    }
+    if (!touched) return msg;
+    if (content.length === 0) {
+      content.push({ type: "text", text: msg.role === "user" ? "[工具结果已省略]" : "[已省略]" });
+    }
+    return { ...msg, content } as Anthropic.MessageParam;
+  });
 }
 
 /** 从旧摘要文本回收线索区段行（二次压缩时保留） */
@@ -206,16 +271,18 @@ export class ContextCompactor {
     if (this.circuitOpen) return { messages, strategy: "circuit-open" };
     const strategy = pickStrategy(estimatedTokens / maxTokens, messages.length, maxTokens);
     this.lastOriginal = messages;
+    const hit = (m: Anthropic.MessageParam[], s: Strategy): { messages: Anthropic.MessageParam[]; strategy: Strategy } =>
+      s === "none" ? { messages: m, strategy: s } : { messages: sanitizeToolPairing(m), strategy: s };
     switch (strategy) {
       case "none":
         return { messages, strategy };
       case "micro":
-        return { messages: this.microcompact(messages), strategy };
+        return hit(this.microcompact(messages), strategy);
       case "snip":
-        return { messages: this.snip(messages), strategy };
+        return hit(this.snip(messages), strategy);
       case "collapse":
       case "force":
-        return { messages: this.contextCollapse(messages), strategy };
+        return hit(this.contextCollapse(messages), strategy);
       default:
         return { messages, strategy: "none" };
     }
@@ -246,7 +313,7 @@ export class ContextCompactor {
       current = this.budgetReduction(messages);
       iterations++;
     }
-    return { messages: current, iterations };
+    return { messages: sanitizeToolPairing(current), iterations };
   }
 
   shouldCompact(messages: Anthropic.MessageParam[], estimatedTokens: number, maxTokens: number): boolean {
@@ -335,7 +402,7 @@ export class ContextCompactor {
       setCompactionRecord(
         messages.length, outMsgs.length, estimateTokens(messages), estimateTokens(outMsgs), source,
       );
-      return outMsgs;
+      return sanitizeToolPairing(outMsgs);
     } catch {
       const fb = this.budgetReduction(messages);
       if (fb.length < messages.length) {
@@ -343,7 +410,7 @@ export class ContextCompactor {
           messages.length, fb.length, estimateTokens(messages), estimateTokens(fb), source,
         );
       }
-      return fb;
+      return sanitizeToolPairing(fb);
     }
   }
 
@@ -359,19 +426,19 @@ export class ContextCompactor {
     const afterSnip = this.snip(messages);
     if (JSON.stringify(afterSnip) !== JSON.stringify(messages)) {
       rec(afterSnip);
-      return { messages: afterSnip, strategy: "snip" };
+      return { messages: sanitizeToolPairing(afterSnip), strategy: "snip" };
     }
 
     const afterMicro = this.microcompact(messages);
     if (afterMicro.length < messages.length) {
       rec(afterMicro);
-      return { messages: afterMicro, strategy: "microcompact" };
+      return { messages: sanitizeToolPairing(afterMicro), strategy: "microcompact" };
     }
 
     const afterCollapse = this.contextCollapse(messages);
     if (afterCollapse.length < messages.length) {
       rec(afterCollapse);
-      return { messages: afterCollapse, strategy: "context-collapse" };
+      return { messages: sanitizeToolPairing(afterCollapse), strategy: "context-collapse" };
     }
 
     const afterAuto = await this.autoCompact(client, model, messages, focus, source);
