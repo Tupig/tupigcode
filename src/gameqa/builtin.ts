@@ -54,6 +54,32 @@ interface HttpResult {
 }
 
 /**
+ * SSRF 防护（fix #118）：默认拒绝私网/环回/link-local/非 http(s)。
+ * 本地联调或受信内网目标显式 GAMEQA_ALLOW_PRIVATE=1 放开。
+ */
+export function isBlockedRequestTarget(u: URL): string | null {
+  if (u.protocol !== "http:" && u.protocol !== "https:") return `不支持的协议 ${u.protocol}`;
+  if (process.env["GAMEQA_ALLOW_PRIVATE"] === "1") return null;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".localhost")) return "私网/环回地址";
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const a = Number(v4[1]);
+    const b = Number(v4[2]);
+    const priv =
+      a === 0 || a === 10 || a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254);
+    if (priv) return "私网/环回地址";
+  }
+  if (h === "::1" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) {
+    return "私网/环回地址";
+  }
+  return null;
+}
+
+/**
  * 原生 http/https 请求（支持 insecure_tls 跳过证书校验——fetch/undici 做不到）。
  * 超时、响应体 1MB 上限、latency 计时与 Go 版一致。
  */
@@ -71,6 +97,11 @@ export function doRequest(
       u = new URL(url);
     } catch (err) {
       reject(err);
+      return;
+    }
+    const blocked = isBlockedRequestTarget(u);
+    if (blocked !== null) {
+      reject(new Error(`目标被安全策略拒绝（${blocked}）：${url}。受信内网目标可设 GAMEQA_ALLOW_PRIVATE=1`));
       return;
     }
     const isHttps = u.protocol === "https:";

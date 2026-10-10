@@ -88,12 +88,18 @@ function adbMeminfoArgs(serial: string | undefined, pkg: string): string[] {
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
+/** adb shell 参数白名单（fix #118：防设备端命令注入——禁 ;|&$`() 等 shell 元字符） */
+const ADB_PARAM_SAFE = /^[A-Za-z0-9_./:-]+$/;
+
 /** game_perf 主流程。extra: package / duration_s / launch_activity / max_jank_pct / min_fps / max_mem_mb / device_serial */
 export async function runGamePerf(job: Job, workdir: string): Promise<Outcome> {
   const extra = (job["extra"] ?? {}) as Record<string, Json>;
   const pkg = (typeof extra["package"] === "string" ? (extra["package"] as string) : "").trim();
   if (pkg === "") {
     return outcomeFailure("缺少 extra.package（游戏包名，如 com.example.game）");
+  }
+  if (!ADB_PARAM_SAFE.test(pkg)) {
+    return outcomeFailure("extra.package 含非法字符（仅允许字母/数字/._:-）");
   }
 
   const serialRaw = typeof extra["device_serial"] === "string" ? (extra["device_serial"] as string) : "";
@@ -109,6 +115,9 @@ export async function runGamePerf(job: Job, workdir: string): Promise<Outcome> {
   // 可选：拉起游戏
   const launchAct = typeof extra["launch_activity"] === "string" ? (extra["launch_activity"] as string).trim() : "";
   if (launchAct !== "") {
+    if (!ADB_PARAM_SAFE.test(launchAct)) {
+      return outcomeFailure("extra.launch_activity 含非法字符（仅允许字母/数字/._:/-）");
+    }
     try {
       adbShell(serialOpt, `am start -n ${launchAct}`);
     } catch (err) {

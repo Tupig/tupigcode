@@ -315,6 +315,14 @@ function buildRoutes(store: Store, staticDir: string): Router {
       return;
     }
     const jobId = typeof body.job_id === "number" ? body.job_id : 0;
+    if (!store.hasJob(jobId)) {
+      writeDetail(ctx.res, 404, "job not found");
+      return;
+    }
+    if (!store.agentOwnsJob(agentId, jobId)) {
+      writeDetail(ctx.res, 403, "agent does not own job");
+      return;
+    }
     if (!store.setJobResult(jobId, agentId, body.success === true, body.log_path ?? null, body.summary ?? {})) {
       writeDetail(ctx.res, 404, "job not found");
       return;
@@ -364,6 +372,10 @@ function buildRoutes(store: Store, staticDir: string): Router {
     const jobId = typeof body.job_id === "number" ? body.job_id : 0;
     if (!store.hasJob(jobId)) {
       writeDetail(ctx.res, 404, "job not found");
+      return;
+    }
+    if (!store.agentOwnsJob(body.agent_id ?? "", jobId)) {
+      writeDetail(ctx.res, 403, "agent does not own job");
       return;
     }
     const files = body.files ?? [];

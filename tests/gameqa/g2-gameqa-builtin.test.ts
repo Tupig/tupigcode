@@ -30,6 +30,8 @@ let targetBase: string;
 let tmpDir: string;
 
 beforeAll(async () => {
+  // g2 用本机 HTTP server 当上游——放行私网目标（fix #118 SSRF 闸的测试豁免）
+  process.env["GAMEQA_ALLOW_PRIVATE"] = "1";
   target = http.createServer((req, res) => {
     const u = new URL(req.url ?? "/", "http://x");
     if (u.pathname === "/ok") {
@@ -51,6 +53,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  delete process.env["GAMEQA_ALLOW_PRIVATE"];
   await new Promise<void>((r) => target.close(() => r()));
 });
 
@@ -135,6 +138,19 @@ describe("web_check / 诊断", () => {
     const [noUrl, msg] = await executeWebCheck(job({ job_type: "web_check" }));
     expect(noUrl).toBe(false);
     expect(msg["message"]).toBe("缺少检查地址");
+  });
+
+  it("SSRF 闸（fix #118）：默认拒绝私网/环回目标，GAMEQA_ALLOW_PRIVATE=1 放开", async () => {
+    const bak = process.env["GAMEQA_ALLOW_PRIVATE"];
+    delete process.env["GAMEQA_ALLOW_PRIVATE"];
+    try {
+      const [ok, sum] = await executeWebCheck(job({ job_type: "web_check", url: `${targetBase}/ok` }));
+      expect(ok).toBe(false);
+      const first = (sum["results"] as any[])[0];
+      expect(String(first["error"])).toContain("安全策略拒绝");
+    } finally {
+      if (bak !== undefined) process.env["GAMEQA_ALLOW_PRIVATE"] = bak;
+    }
   });
 
   it("port_check：open 断言 + 期望关闭", async () => {

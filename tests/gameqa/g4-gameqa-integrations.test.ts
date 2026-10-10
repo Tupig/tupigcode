@@ -169,6 +169,18 @@ describe("runGamePerf", () => {
     expect(String(out.summary["message"])).toContain("extra.package");
   });
 
+  it("package/launch_activity 含 shell 元字符 → 拒绝（fix #118 adb 注入）", async () => {
+    const bad1 = await runGamePerf(job({ package: "com.example.game; rm -rf /data/local/tmp" }), dir);
+    expect(bad1.success).toBe(false);
+    expect(String(bad1.summary["message"])).toContain("非法字符");
+    const bad2 = await runGamePerf(
+      job({ package: "com.example.game", launch_activity: "a/.A; reboot" }),
+      dir,
+    );
+    expect(bad2.success).toBe(false);
+    expect(String(bad2.summary["message"])).toContain("launch_activity");
+  });
+
   it("假 adb 全流程：采样 5s → 帧率/内存/阈值断言 + gfxinfo 产物", async () => {
     const adb = path.join(dir, "fake-adb-perf");
     writeExecutable(

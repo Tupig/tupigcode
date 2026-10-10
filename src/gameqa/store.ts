@@ -255,6 +255,21 @@ export class Store {
     return this.agents.has(id);
   }
 
+  /**
+   * 任务归属校验（fix #118）：上报/传产物者须为该任务原结果 agent，或当前无其他 agent 持有。
+   * 防已注册 Agent 之间互相伪造结果/窃取产物。
+   */
+  agentOwnsJob(agentId: string, jobId: number): boolean {
+    const job = this.jobs.find((j) => jobIdOf(j) === jobId);
+    if (!job) return false;
+    const prev = (job["result"] as { agent_id?: string } | undefined)?.agent_id;
+    if (prev !== undefined && prev !== "" && prev !== agentId) return false;
+    for (const [id, agent] of this.agents) {
+      if (id !== agentId && Number(agent["current_job_id"]) === jobId) return false;
+    }
+    return true;
+  }
+
   listAgents(): { items: Agent[]; total: number } {
     return { items: [...this.agents.values()], total: this.agents.size };
   }

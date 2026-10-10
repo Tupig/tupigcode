@@ -151,6 +151,33 @@ describe("任务 API 合同", () => {
     expect((await api("POST", "/api/jobs/result", { job_id: 999999, agent_id: "a-2", success: true })).status).toBe(404);
   });
 
+  it("结果/产物归属（fix #118）：其他 agent 持有 current_job_id 时上报/传产物 403", async () => {
+    await api("POST", "/api/agents/register", { agent_id: "a-own", platform: "mac", skills: [] });
+    await api("POST", "/api/agents/register", { agent_id: "a-evil", platform: "mac", skills: [] });
+    const c = await api("POST", "/api/jobs", { platform: "mac" });
+    const id = c.json.job_id;
+    // a-own 心跳声明持有
+    expect(
+      (
+        await api("POST", "/api/agents/heartbeat", {
+          agent_id: "a-own", status: "running", current_job_id: id, last_seen: 1,
+        })
+      ).json.ok,
+    ).toBe(true);
+    // 其他 agent 伪造结果/传产物 → 403
+    expect((await api("POST", "/api/jobs/result", { job_id: id, agent_id: "a-evil", success: true })).status).toBe(403);
+    expect(
+      (await api("POST", "/api/jobs/artifacts", { job_id: id, agent_id: "a-evil", files: [{ name: "x.log", content: "x" }] })).status,
+    ).toBe(403);
+    // 持有者本人成功
+    expect((await api("POST", "/api/jobs/result", { job_id: id, agent_id: "a-own", success: true, summary: {} })).json.ok).toBe(true);
+    // 原结果 agent 复报仍允许（迟到覆盖被 setJobResult 静默接受语义保留）
+    expect((await api("POST", "/api/jobs/result", { job_id: id, agent_id: "a-own", success: true, summary: {} })).json.ok).toBe(true);
+    // 第三个已注册 agent 在已有原结果后不能改写
+    await api("POST", "/api/agents/register", { agent_id: "a-third", platform: "mac", skills: [] });
+    expect((await api("POST", "/api/jobs/result", { job_id: id, agent_id: "a-third", success: false })).status).toBe(403);
+  });
+
   it("cancel：pending→cancelled；passed 409；delete 移除；cleanup 计数", async () => {
     const c1 = await api("POST", "/api/jobs", { platform: "linux", required_skills: [] });
     const id1 = c1.json.job_id;
