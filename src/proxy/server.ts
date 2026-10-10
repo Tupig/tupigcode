@@ -5,7 +5,7 @@
 import http from "http";
 import { appendWire } from "../utils/wire.js";
 import readline from "readline";
-import { randomUUID } from "crypto";
+import { randomUUID, timingSafeEqual } from "crypto";
 import { anthropicToOpenAI, openaiToAnthropic, responsesToChat, chatToResponses, textOf, BACKEND_MODEL, STOP_MAP } from "./convert.js";
 
 export type ProxyOptions = {
@@ -38,7 +38,13 @@ export function createProxyServer(opts: ProxyOptions = {}): http.Server {
   const checkAuth = (req: http.IncomingMessage): boolean => {
     if (!authToken) return true;
     const auth = req.headers.authorization ?? "";
-    return auth === `Bearer ${authToken}` || auth === `Token ${authToken}`;
+    const m = /^(?:Bearer|Token) (.+)$/.exec(auth);
+    if (!m) return false;
+    // 恒时比较（fix #123：对齐 gameqa server 的 tokenEqual）
+    const a = Buffer.from(m[1]);
+    const b = Buffer.from(authToken);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
   };
 
   const readBody = (req: http.IncomingMessage): Promise<any | null> =>
@@ -64,14 +70,22 @@ export function createProxyServer(opts: ProxyOptions = {}): http.Server {
       req.on("error", () => resolve("__read_error__"));
     });
 
-  /** POST 后端，返回 fetch Response */
-  const callBackend = (payload: any) =>
-    fetch(backend, {
+  /** POST 后端，返回 fetch Response。clientSignal：客户端断开时中止后端请求（fix #123 防空跑烧 token） */
+  const callBackend = (payload: any, clientSignal?: AbortSignal) => {
+    const ctrl = new AbortController();
+    const timer = AbortSignal.timeout(timeoutMs);
+    timer.addEventListener("abort", () => ctrl.abort(), { once: true });
+    if (clientSignal) {
+      if (clientSignal.aborted) ctrl.abort();
+      else clientSignal.addEventListener("abort", () => ctrl.abort(), { once: true });
+    }
+    return fetch(backend, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer local" },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: ctrl.signal,
     });
+  };
 
   const sse = (res: http.ServerResponse, event: string, data: unknown) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -249,13 +263,17 @@ export function createProxyServer(opts: ProxyOptions = {}): http.Server {
       model: payload?.model,
       data: { protocol, inbound: originalBody, outbound: payload },
     });
+    // 客户端断开 → 中止后端请求（fix #123）
+    const gone = new AbortController();
+    const onClientClose = (): void => gone.abort();
+    res.on("close", onClientClose);
     try {
       if (wantStream) {
         payload.stream = true;
         // OpenAI 兼容后端默认不在流末 chunk 附 usage，需显式请求
         payload.stream_options = { include_usage: true };
       }
-      const backendResp = await callBackend(payload);
+      const backendResp = await callBackend(payload, gone.signal);
 
       if (wantStream) {
         if (protocol === "anthropic") await relayStreamAnthropic(backendResp, res, originalBody);
@@ -279,6 +297,8 @@ export function createProxyServer(opts: ProxyOptions = {}): http.Server {
       else if (res.headersSent) res.end();
       else safeErr(res, 500, String(e));
       log(`proxy error: ${e?.message ?? e}`);
+    } finally {
+      res.off("close", onClientClose);
     }
   };
 
@@ -334,6 +354,7 @@ export function createProxyServer(opts: ProxyOptions = {}): http.Server {
   server.listen(port, "127.0.0.1", () => {
     log(`listening on 127.0.0.1:${port} → ${backend}`);
     log("protocols: chat/completions, responses, messages");
+    if (!authToken) log("警告：未设 authToken，代理完全放行——仅限本机使用（fix #123 提示）");
   });
   return server;
 }
