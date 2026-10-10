@@ -3,7 +3,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Tupig/tupigcode/ci.yml?branch=main&label=CI)](https://github.com/Tupig/tupigcode/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/Node-%E2%89%A520-black?logo=nodedotjs&logoColor=white)](#快速开始)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript&logoColor=white)](#项目结构)
-[![vitest](https://img.shields.io/badge/vitest-1113%20%E7%BB%BF-brightgreen?logo=vitest&logoColor=white)](#测试与-ci)
+[![vitest](https://img.shields.io/badge/vitest-1126%20%E7%BB%BF-brightgreen?logo=vitest&logoColor=white)](#测试与-ci)
 [![gameqa](https://img.shields.io/badge/gameqa-Unity%20%E6%B5%8B%E8%AF%95%E5%B9%B3%E5%8F%B0-orange?logo=unity&logoColor=white)](#gameqa--unity-自动化测试平台)
 
 > 全 TypeScript 的本地研发工具集，四个部分：
@@ -119,7 +119,7 @@ Design principles:
 git clone https://github.com/Tupig/tupigcode.git && cd tupigcode
 npm ci                # 安装依赖（Node ≥ 20，构建需 Node 22+）
 npm run build         # tsc 编译 + 拷贝 gameqa 看板静态资源 + 入口 chmod
-npm test              # 128 文件 / 1113 用例（tsc + vitest 是 CI 双门槛）
+npm test              # 131 文件 / 1126 用例（tsc + vitest 是 CI 双门槛）
 ```
 
 构建后 `dist/cli/*.js` 即 7 个可执行入口。常用命令：
@@ -528,7 +528,7 @@ tupigcode/
 │   ├── cli/                   # 7 个入口（tupigcode llm gameqa *-local mlx-local）
 │   └── git/ state/ utils/
 │
-├── tests/                     # vitest 128 文件 / 1113 用例，按子域分 14 目录
+├── tests/                     # vitest 131 文件 / 1126 用例，按子域分 14 目录
 │   ├── engine/ context/ routing/ hooks/ tools/ session/ permission/
 │   ├── mcp/ execution/ knowledge/ prompt/ commands/
 │   └── gameqa/ proxy/ fixtures/
@@ -623,7 +623,7 @@ Prefixes match the actual `git log` convention: `fix` (fix a bug, the body must 
 ## 测试与 CI / Tests and CI
 
 ```bash
- npm test              # = npx vitest run，128 文件 / 1113 用例
+ npm test              # = npx vitest run，131 文件 / 1126 用例
  npx tsc --noEmit      # 类型门槛
  npm run build         # 构建门槛（含 gameqa 静态资源拷贝 + 入口 chmod）
  ```
