@@ -12,7 +12,7 @@ import { Store } from "../../src/gameqa/store";
 import { createGameqaServer } from "../../src/gameqa/server";
 import { execute, runAgent } from "../../src/gameqa/agent";
 import { parseNUnitXml, tailUtf8, resolveUnityBinary } from "../../src/gameqa/unity";
-import { scanLogText, defaultPlayerLog, runLogScan, runDeviceInventory, executeAgentJobType } from "../../src/gameqa/executors";
+import { scanLogText, defaultPlayerLog, runLogScan, runDeviceInventory, executeAgentJobType, pathAllowed } from "../../src/gameqa/executors";
 
 const PASS_XML = `<?xml version="1.0"?>
 <test-run id="1" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0">
@@ -335,6 +335,51 @@ describe("执行器分发", () => {
     const noPath = runLogScan(job({ job_type: "unity_log_scan" }, { platform: "web" }), dir);
     expect(noPath.success).toBe(false);
     expect(noPath.summary["message"]).toContain("extra.log_path");
+  });
+
+  it("路径白名单（fix #126）：pathAllowed 默认放行 / 前缀命中 / 逃逸拒绝", () => {
+    setEnv("GAMEQA_SAFE_PATHS", undefined);
+    setEnv("AGENT_UNITY_ROOTS", undefined);
+    expect(pathAllowed("/any/where/x.log", "GAMEQA_SAFE_PATHS")).toBe(true);
+
+    const root = path.join(dir, "roots");
+    fs.mkdirSync(root, { recursive: true });
+    setEnv("GAMEQA_SAFE_PATHS", `${path.join(dir, "other")}:${root}`);
+    expect(pathAllowed(path.join(root, "sub", "a.log"), "GAMEQA_SAFE_PATHS")).toBe(true);
+    expect(pathAllowed(path.join(dir, "other"), "GAMEQA_SAFE_PATHS")).toBe(true);
+    expect(pathAllowed("/etc/hosts", "GAMEQA_SAFE_PATHS")).toBe(false);
+    // 前缀边界：/x/rootsEvil 不在 /x/roots 之下
+    expect(pathAllowed(`${root}Evil/a.log`, "GAMEQA_SAFE_PATHS")).toBe(false);
+  });
+
+  it("GAMEQA_SAFE_PATHS 拦截白名单外 log_path，未配置不拦", () => {
+    const logFile = path.join(dir, "player.log");
+    fs.writeFileSync(logFile, "Unity v2022\nError: boom\n");
+    setEnv("GAMEQA_SAFE_PATHS", path.join(dir, "elsewhere"));
+
+    const blocked = runLogScan(job({ job_type: "unity_log_scan", log_path: logFile }), dir);
+    expect(blocked.success).toBe(false);
+    expect(String(blocked.summary["message"])).toContain("GAMEQA_SAFE_PATHS");
+
+    setEnv("GAMEQA_SAFE_PATHS", dir);
+    const ok = runLogScan(job({ job_type: "unity_log_scan", log_path: logFile, max_errors: 10 }), dir);
+    expect(ok.success).toBe(true);
+
+    setEnv("GAMEQA_SAFE_PATHS", undefined);
+    const free = runLogScan(job({ job_type: "unity_log_scan", log_path: logFile, max_errors: 10 }), dir);
+    expect(free.success).toBe(true);
+  });
+
+  it("AGENT_UNITY_ROOTS 拦截白名单外项目路径（execute 入口）", async () => {
+    setEnv("AGENT_UNITY_ROOTS", path.join(dir, "allowed-elsewhere"));
+    const out = await execute(job({}, { unity_project_path: proj }), path.join(dir, "wl-banned"));
+    expect(out.success).toBe(false);
+    expect(String(out.summary["message"])).toContain("AGENT_UNITY_ROOTS");
+
+    setEnv("AGENT_UNITY_ROOTS", undefined);
+    const ok = await execute(job({}, { unity_project_path: proj }), path.join(dir, "wl-free"));
+    expect(ok.success).toBe(true);
+    expect(String(ok.summary["message"])).not.toContain("白名单");
   });
 
   it("device_inventory：假 adb 枚举设备与属性", () => {

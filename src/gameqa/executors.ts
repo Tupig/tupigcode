@@ -51,12 +51,32 @@ export function scanLogText(text: string): { count: number; details: string[]; e
 
 const LOG_SCAN_MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * 可选路径白名单（fix #126）：env 未设置 → 恒放行（默认行为完全不变）；
+ * 设置后（冒号/逗号分隔多前缀）→ 路径 resolve 后必须等于或位于任一前缀之下（前缀边界用 path.sep，防 /a-b 逃逸 /a）。
+ */
+export function pathAllowed(value: string, envVar: string): boolean {
+  const spec = (process.env[envVar] ?? "").trim();
+  if (spec === "") return true;
+  const target = path.resolve(value);
+  const roots = spec
+    .split(/[,:]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((r) => path.resolve(r));
+  if (roots.length === 0) return true;
+  return roots.some((root) => target === root || target.startsWith(root + path.sep));
+}
+
 /** unity_log_scan：extra.log_path 优先，缺省用平台 Player.log；extra.max_errors 阈值 */
 export function runLogScan(job: Job, workdir: string): Outcome {
   const extra = (job["extra"] ?? {}) as Record<string, Json>;
   const platform = typeof job["platform"] === "string" ? job["platform"] : "mac";
 
   const explicit = typeof extra["log_path"] === "string" ? extra["log_path"] : null;
+  if (explicit !== null && !pathAllowed(explicit, "GAMEQA_SAFE_PATHS")) {
+    return outcomeFailure(`extra.log_path 不在白名单 GAMEQA_SAFE_PATHS 内: ${explicit}`);
+  }
   const p = explicit ?? defaultPlayerLog(platform);
   if (p === null) {
     return outcomeFailure("无法确定日志路径，请通过 extra.log_path 显式指定");

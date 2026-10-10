@@ -18,7 +18,7 @@ import * as path from "node:path";
 import type { Json, Job } from "./store.js";
 import { runUnityTests, parseNUnitXml, tailUtf8, ARTIFACT_MAX_BYTES } from "./unity.js";
 import { mcpPost } from "./mcp.js";
-import { executeAgentJobType, type Outcome } from "./executors.js";
+import { executeAgentJobType, pathAllowed, type Outcome } from "./executors.js";
 
 const POLL_INTERVAL_MS = 15_000;
 const MAX_BACKOFF_MS = 120_000;
@@ -170,6 +170,14 @@ async function runUnityTestJob(job: Job, workdir: string): Promise<Outcome> {
   const projectPath = str(job["unity_project_path"]) || str(extra["unity_project_path"]);
   if (projectPath.trim() === "") {
     return { success: false, logPath: null, summary: { message: "缺少 unity_project_path" }, artifacts: [] };
+  }
+  if (!pathAllowed(projectPath, "AGENT_UNITY_ROOTS")) {
+    return {
+      success: false,
+      logPath: null,
+      summary: { message: `unity_project_path 不在白名单 AGENT_UNITY_ROOTS 内: ${projectPath}` },
+      artifacts: [],
+    };
   }
 
   // generate_and_run：生成的 C# 测试写入项目（默认执行后清理，extra.keep_generated 保留）
