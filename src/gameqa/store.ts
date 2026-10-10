@@ -41,11 +41,16 @@ function jobIdOf(job: Job): number {
   return typeof v === "number" ? Math.trunc(v) : 0;
 }
 
-/** 原子写：临时文件 + rename；2 空格缩进（与 Python/Go 版一致） */
+/** 原子写：临时文件 + rename；2 空格缩进（与 Python/Go 版一致）。tmp 名含 pid+随机（fix #121） */
 function writeJSONFile(filePath: string, v: unknown): void {
-  const tmp = filePath + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(v, null, 2), "utf-8");
-  fs.renameSync(tmp, filePath);
+  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 10)}.tmp`;
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(v, null, 2), "utf-8");
+    fs.renameSync(tmp, filePath);
+  } catch (err) {
+    try { fs.unlinkSync(tmp); } catch { /* tmp 不存在 */ }
+    throw err;
+  }
 }
 
 function toStringSet(v: Json | undefined): Set<string> {
@@ -201,14 +206,16 @@ export class Store {
   deleteJob(id: number): boolean {
     const idx = this.jobs.findIndex((j) => jobIdOf(j) === id);
     if (idx < 0) return false;
-    this.jobs.splice(idx, 1);
+    const removed = this.jobs.splice(idx, 1)[0];
     try {
       fs.rmSync(path.join(this.runsDir, `job_${id}.json`), { force: true });
       this.saveData();
+      return true;
     } catch (e) {
+      this.jobs.splice(idx, 0, removed); // 落盘失败回滚内存，避免内存/磁盘不一致（fix #121）
       console.warn("[存储] 保存 jobs 失败:", e);
+      return false;
     }
-    return true;
   }
 
   hasJob(id: number): boolean {
@@ -286,7 +293,7 @@ export class Store {
   }
 
   listJobs(): { items: Job[]; total: number } {
-    return { items: this.jobs, total: this.jobs.length };
+    return { items: [...this.jobs], total: this.jobs.length }; // 拷贝，防调用方变异内部状态（fix #121）
   }
 
   /** 查找任务；内存未命中时读 runs/job_<id>.json 兜底（已删除任务的历史查询） */

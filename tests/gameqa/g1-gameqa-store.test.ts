@@ -185,4 +185,23 @@ describe("Agent 与产物", () => {
     expect(() => s.readArtifact(id, "..%2Fevil")).toThrow(/非法/);
     expect(s.listArtifacts(999)).toEqual([]);
   });
+
+  it("listJobs 返回数组拷贝，调用方增删不影响内部列表（fix #121）", () => {
+    const s = new Store(dir);
+    s.appendJob({ job_id: s.nextJobId(), platform: "mac", status: "pending", required_skills: null, extra: {}, created_at: 1 });
+    const { items } = s.listJobs();
+    items.push({ job_id: 999, platform: "hack" } as Job);
+    items.splice(0, 1);
+    expect(s.listJobs().total).toBe(1);
+    expect(s.listJobs().items[0]["job_id"]).toBe(1);
+  });
+
+  it("deleteJob 移除后 listJobs/hasJob 同步（fix #121 回滚语义正常路径回归）", () => {
+    const s = new Store(dir);
+    const id = s.nextJobId();
+    s.appendJob({ job_id: id, platform: "mac", status: "pending", required_skills: null, extra: {}, created_at: 1 });
+    expect(s.deleteJob(id)).toBe(true);
+    expect(s.hasJob(id)).toBe(false);
+    expect(s.listJobs().total).toBe(0);
+  });
 });

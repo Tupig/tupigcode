@@ -60,3 +60,28 @@ describe("原子写（issue #90）", () => {
     expect(ckptSrc).toMatch(/writeFileAtomic\(/);
   });
 });
+
+describe("tmp 并发与失败清理（fix #121）", () => {
+  it("async 与 sync 并发写同一目标：最终为完整 JSON，无半写", async () => {
+    const { writeFileAtomic, writeFileAtomicSync } = await import("../../src/utils/atomic-write");
+    const target = join(dir, "hot.json");
+    const jobs: Promise<unknown>[] = [];
+    for (let i = 0; i < 20; i++) {
+      const payload = JSON.stringify({ w: i, pad: "x".repeat(4096) });
+      if (i % 2 === 0) jobs.push(writeFileAtomic(target, payload));
+      else jobs.push(Promise.resolve().then(() => writeFileAtomicSync(target, payload)));
+    }
+    await Promise.all(jobs);
+    const final = JSON.parse(readFileSync(target, "utf-8")) as { w: number };
+    expect(typeof final.w).toBe("number");
+    // 成功路径不留 tmp 残渣
+    const { readdirSync } = await import("node:fs");
+    expect(readdirSync(dir).filter((f) => f.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("写失败：异常抛出且不留半写目标", async () => {
+    const { writeFileAtomic } = await import("../../src/utils/atomic-write");
+    const target = join(dir, "missing-dir", "f.txt");
+    await expect(writeFileAtomic(target, "x")).rejects.toThrow();
+  });
+});
