@@ -178,17 +178,26 @@ const MIME: Record<string, string> = {
   ".map": "application/json",
 };
 
-/** 静态文件服务：目录一律 404（noDirFS），路径穿越防护，no-cache */
-function serveStatic(staticDir: string, urlPath: string, res: http.ServerResponse): void {
+/** 静态文件服务：目录一律 404（noDirFS），路径穿越防护（realpath 防 symlink 逃逸），异步 IO（fix #124） */
+async function serveStatic(staticDir: string, urlPath: string, res: http.ServerResponse): Promise<void> {
   const rel = urlPath.replace(/^\/static\/?/, "");
   const abs = path.resolve(staticDir, rel);
-  if (!abs.startsWith(path.resolve(staticDir) + path.sep) && abs !== path.resolve(staticDir)) {
+  let rootReal: string;
+  let real: string;
+  try {
+    rootReal = fs.realpathSync(path.resolve(staticDir));
+    real = fs.realpathSync(abs);
+  } catch {
+    writeDetail(res, 404, "not found");
+    return;
+  }
+  if (real !== rootReal && !real.startsWith(rootReal + path.sep)) {
     writeDetail(res, 404, "not found");
     return;
   }
   let st: fs.Stats;
   try {
-    st = fs.statSync(abs);
+    st = await fs.promises.stat(real);
   } catch {
     writeDetail(res, 404, "not found");
     return;
@@ -197,10 +206,10 @@ function serveStatic(staticDir: string, urlPath: string, res: http.ServerRespons
     writeDetail(res, 404, "not found");
     return;
   }
-  res.setHeader("Content-Type", MIME[path.extname(abs).toLowerCase()] ?? "application/octet-stream");
+  res.setHeader("Content-Type", MIME[path.extname(real).toLowerCase()] ?? "application/octet-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.writeHead(200);
-  res.end(fs.readFileSync(abs));
+  res.end(await fs.promises.readFile(real));
 }
 
 // ---------- 构建 handler ----------
@@ -545,7 +554,7 @@ function buildRoutes(store: Store, staticDir: string): Router {
     res.end(html);
   });
 
-  r.add("GET", "/", ({ res }) => {
+  r.add("GET", "/", async ({ res }) => {
     const idx = path.join(staticDir, "index.html");
     if (!fs.existsSync(idx)) {
       writeDetail(res, 404, "index.html not found");
@@ -553,7 +562,7 @@ function buildRoutes(store: Store, staticDir: string): Router {
     }
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.writeHead(200);
-    res.end(fs.readFileSync(idx));
+    res.end(await fs.promises.readFile(idx));
   });
 
   return r;
@@ -582,7 +591,7 @@ export function createGameqaServer(store: Store, staticDir: string): (req: http.
           return;
         }
         if (req.method === "GET" && pathname.startsWith("/static/")) {
-          serveStatic(staticDir, pathname, res);
+          await serveStatic(staticDir, pathname, res);
           return;
         }
         writeDetail(res, 404, "Not Found");

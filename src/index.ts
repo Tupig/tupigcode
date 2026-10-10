@@ -682,7 +682,9 @@ async function startREPL(): Promise<void> {
       })) {
         if (msg.type === "session") {
           sessionHistory = msg.messages;
-          await saveSessionMessages(appStore.getState().workDir, sessionId, sessionHistory).catch(() => {});
+          await saveSessionMessages(appStore.getState().workDir, sessionId, sessionHistory).catch((err: unknown) => {
+            console.warn("[会话] 自动保存失败（历史可能不完整）:", err instanceof Error ? err.message : err);
+          });
           if (process.env.TUPIG_AUTOSNAPSHOT !== "0") {
             autoSnapshot(appStore.getState().workDir, "auto:turn", sessionHistory).catch(() => {});
           }

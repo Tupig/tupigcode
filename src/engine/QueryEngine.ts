@@ -515,10 +515,17 @@ export class QueryEngine {
   }
 
   /** 常驻工具的 Anthropic tool schema（issue #44：估算与请求共用同一构造） */
+  /** zod→JSON schema 按 inputSchema 对象身份缓存（fix #124：每轮重复转换的浪费；工具定义为编译期常量，WeakMap 随实例回收） */
+  private static readonly schemaCache = new WeakMap<object, unknown>();
+
   private buildToolDefs(): Anthropic.Tool[] {
     const residentTools = this.activeRequestTools();
     return residentTools.map((t) => {
-      const raw = (t.jsonSchema as any) ?? zodToJsonSchema(t.inputSchema);
+      let raw = (t.jsonSchema as any) ?? QueryEngine.schemaCache.get(t.inputSchema as object);
+      if (raw === undefined) {
+        raw = zodToJsonSchema(t.inputSchema);
+        if (!t.jsonSchema) QueryEngine.schemaCache.set(t.inputSchema as object, raw);
+      }
       // 清理 zod-to-json-schema 添加的多余字段
       const { $schema, additionalProperties, ...schema } = raw as any;
       return {
