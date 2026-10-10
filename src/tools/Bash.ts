@@ -74,9 +74,31 @@ export const BashTool = buildTool<string>({
 
       let stdout = "";
       let stderr = "";
+      // 输出累积封顶（fix #122）：超限只计数，防失控子进程 OOM
+      const OUTPUT_CAP = 4 << 20;
+      let stdoutDropped = 0;
+      let stderrDropped = 0;
+      const capAppend = (cur: string, curBytes: number, data: Buffer): [string, number, number] => {
+        if (curBytes >= OUTPUT_CAP) return [cur, curBytes, data.length];
+        const room = OUTPUT_CAP - curBytes;
+        const take = data.length > room ? data.subarray(0, room) : data;
+        return [cur + take.toString(), curBytes + take.length, data.length - take.length];
+      };
+      let stdoutBytes = 0;
+      let stderrBytes = 0;
 
-      child.stdout.on("data", (data: Buffer) => { stdout += data.toString(); });
-      child.stderr.on("data", (data: Buffer) => { stderr += data.toString(); });
+      child.stdout.on("data", (data: Buffer) => {
+        const [s, b, d] = capAppend(stdout, stdoutBytes, data);
+        stdout = s;
+        stdoutBytes = b;
+        stdoutDropped += d;
+      });
+      child.stderr.on("data", (data: Buffer) => {
+        const [s, b, d] = capAppend(stderr, stderrBytes, data);
+        stderr = s;
+        stderrBytes = b;
+        stderrDropped += d;
+      });
 
       const finish = (result: ToolResult<string>) => {
         if (settled) return;
@@ -86,10 +108,15 @@ export const BashTool = buildTool<string>({
       };
 
       // 超时 = 执行失败（reject → 上层 PostToolUseFailure / is_error tool_result，issue #36）
+      // SIGTERM 后 5s 未退则 SIGKILL 兜底（fix #122）
       const timer = setTimeout(() => {
         if (settled) return;
         settled = true;
         try { child.kill("SIGTERM"); } catch {}
+        const killTimer = setTimeout(() => {
+          try { child.kill("SIGKILL"); } catch {}
+        }, 5_000);
+        killTimer.unref();
         reject(new Error(`命令执行超时（${timeout}ms）`));
       }, timeout);
 
@@ -97,6 +124,8 @@ export const BashTool = buildTool<string>({
         let result = "";
         if (stdout) result += stdout;
         if (stderr) result += (result ? "\n" : "") + stderr;
+        const dropped = stdoutDropped + stderrDropped;
+        if (dropped > 0) result += `\n（输出超出 ${OUTPUT_CAP} 字节上限，已丢弃 ${dropped} 字节）`;
         if (!result) result = `（退出码：${code ?? "未知"}）`;
         result = clipOutput(result, (input.keep ?? "both") as ClipKeep).text;
         finish({ data: result });

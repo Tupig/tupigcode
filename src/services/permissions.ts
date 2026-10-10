@@ -356,15 +356,14 @@ async function promptUserDecisionLocked(
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
+      // 显式移除全部监听（fix #122：once 在超时/先行触发路径会残留 close/end 监听）
+      process.stdin.removeListener("data", onData);
+      process.stdin.removeListener("close", onClosed);
+      process.stdin.removeListener("end", onClosed);
       process.stdin.pause();
       resolve(result);
     };
-
-    process.stdout.write(chalk.cyan(allowAlways ? "允许执行？(y/N/a=总是允许) " : "允许执行？(y/N) "));
-    process.stdin.setEncoding("utf-8");
-    process.stdin.resume();
-
-    process.stdin.once("data", (data: string) => {
+    const onData = (data: string): void => {
       const answer = parseApprovalAnswer(data);
       if (answer === "y" || answer === "yes") return finish("allow");
       if (allowAlways && (answer === "a" || answer === "always")) {
@@ -372,10 +371,16 @@ async function promptUserDecisionLocked(
         return finish("always");
       }
       finish("deny");
-    });
+    };
+    const onClosed = (): void => finish("deny");
 
-    process.stdin.once("close", () => finish("deny"));
-    process.stdin.once("end", () => finish("deny"));
+    process.stdout.write(chalk.cyan(allowAlways ? "允许执行？(y/N/a=总是允许) " : "允许执行？(y/N) "));
+    process.stdin.setEncoding("utf-8");
+    process.stdin.resume();
+
+    process.stdin.on("data", onData);
+    process.stdin.on("close", onClosed);
+    process.stdin.on("end", onClosed);
 
     const timeout = setTimeout(() => finish("deny"), 30_000);
   });

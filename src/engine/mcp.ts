@@ -13,7 +13,7 @@ import type { OAuthClientMetadata, OAuthTokens, OAuthClientInformationMixed } fr
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { createServer as createHttpServer, type Server as HttpServer } from "http";
 import { spawn } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync, chmodSync } from "fs";
 import { homedir } from "os";
 import { z } from "zod";
 import { randomBytes } from "crypto";
@@ -22,6 +22,21 @@ import { join } from "path";
 import { buildTool, type Tool, type ToolUseContext, type CanUseToolFn } from "./Tool.js";
 
 export type McpApproval = "allow" | "ask" | "deny";
+
+/** stdio 子进程随父进程清理（fix #122：exit 监听只挂一次，pid 集合维护，防重连累积监听器） */
+const stdioCleanupPids = new Set<number>();
+let stdioCleanupArmed = false;
+function armStdioCleanup(pid: number): void {
+  stdioCleanupPids.add(pid);
+  if (stdioCleanupArmed) return;
+  stdioCleanupArmed = true;
+  process.once("exit", () => {
+    for (const p of stdioCleanupPids) {
+      try { process.kill(p, "SIGTERM"); } catch { /* 已退出 */ }
+    }
+  });
+}
+
 export type McpServerEntry = {
   command: string;
   args?: string[];
@@ -109,7 +124,10 @@ export class FileOAuthProvider implements OAuthClientProvider {
   private read(): OAuthStored {
     try { return JSON.parse(readFileSync(this.file, "utf-8")) as OAuthStored; } catch { return {}; }
   }
-  private write(next: OAuthStored): void { writeFileSync(this.file, JSON.stringify(next)); }
+  private write(next: OAuthStored): void {
+    writeFileSync(this.file, JSON.stringify(next), { mode: 0o600 });
+    try { chmodSync(this.file, 0o600); } catch { /* 兼容已存在文件 */ }
+  }
 
   get redirectUrl(): string | URL {
     this.ensureListener();
@@ -525,14 +543,10 @@ export async function connectMcpServers(
               onGaveUp: () => onWarn?.(`MCP server "${serverName}" 重连放弃（最多 5 次退避重试）`),
             }).finally(() => reconnectGuard.release(serverName));
           };
-          // 进程退出兜底：stdio 子进程随父进程清理
+          // 进程退出兜底：stdio 子进程随父进程清理（exit 监听全局单次注册，fix #122）
           if (transport instanceof StdioClientTransport) {
             const pid = transport.pid;
-            if (pid) {
-              process.once("exit", () => {
-                try { process.kill(pid, "SIGTERM"); } catch { /* 已退出 */ }
-              });
-            }
+            if (pid) armStdioCleanup(pid);
           }
           serverStates.set(serverName, "connected");
         } catch (e) {

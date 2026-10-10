@@ -112,9 +112,30 @@ export const GrepTool = buildTool<string>({
       const child = spawn("rg", args, { timeout: TOOL_TIMEOUT_MS });
       let stdout = "";
       let stderr = "";
+      // 输出累积封顶（fix #122）：海量匹配防 OOM
+      const OUTPUT_CAP = 4 << 20;
+      let dropped = 0;
+      const capAppend = (cur: string, curBytes: number, d: Buffer): [string, number, number] => {
+        if (curBytes >= OUTPUT_CAP) return [cur, curBytes, d.length];
+        const room = OUTPUT_CAP - curBytes;
+        const take = d.length > room ? d.subarray(0, room) : d;
+        return [cur + take.toString(), curBytes + take.length, d.length - take.length];
+      };
+      let stdoutBytes = 0;
+      let stderrBytes = 0;
 
-      child.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
-      child.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+      child.stdout.on("data", (d: Buffer) => {
+        const [s, b, x] = capAppend(stdout, stdoutBytes, d);
+        stdout = s;
+        stdoutBytes = b;
+        dropped += x;
+      });
+      child.stderr.on("data", (d: Buffer) => {
+        const [s, b, x] = capAppend(stderr, stderrBytes, d);
+        stderr = s;
+        stderrBytes = b;
+        dropped += x;
+      });
 
       const timer = setTimeout(() => {
         try { child.kill("SIGTERM"); } catch {}
@@ -127,7 +148,7 @@ export const GrepTool = buildTool<string>({
           finish({ data: `错误：${stderr.trim()}`, isError: true });
           return;
         }
-        finish(format(stdout));
+        finish(format(stdout + (dropped > 0 ? `\n（输出超出 ${OUTPUT_CAP} 字节上限，已丢弃 ${dropped} 字节）` : "")));
       });
 
       child.on("error", () => {

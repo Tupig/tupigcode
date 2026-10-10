@@ -130,4 +130,13 @@ describe("Bash 工具集成", () => {
     expect(r.data).toContain("hello-clip");
     expect(r.data).not.toContain("已截断");
   }, 15_000);
+
+  it("输出累积封顶（fix #122）：超 4MB 只计数并标注丢弃量", async () => {
+    const r: any = await (BashTool as any).call(
+      { command: "head -c 5000000 /dev/zero | base64", keep: "both" },
+      { workDir },
+    );
+    expect(r.data).toContain("已丢弃");
+    expect(r.data.length).toBeLessThan(200_000); // 累积被 4MB 封顶，clip 后远小于原始
+  }, 30_000);
 });
