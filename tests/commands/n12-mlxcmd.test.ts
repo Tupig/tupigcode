@@ -35,4 +35,14 @@ describe("mlxcmd 冒烟", () => {
     await captureStdout(() => runMlxCmd(["model", "list"]));
     expect([0, 1]).toContain(Number(process.exitCode ?? 0));
   });
+
+  it("model 缺省 action 等价 list（action 默认 list 分支）", async () => {
+    const out = await captureStdout(() => runMlxCmd(["model"]));
+    expect(out).toContain("可用模型");
+  });
+
+  it("model info 已知别名：目录未下载返回 1、已下载返回 0，均不抛", async () => {
+    await captureStdout(() => runMlxCmd(["model", "info", "8b"]));
+    expect([0, 1]).toContain(Number(process.exitCode ?? 0));
+  });
 });

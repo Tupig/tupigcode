@@ -5,7 +5,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { PackageListTool, PackageInstallTool, PackageUninstallTool } from "../../src/tools/PackageManager";
+import { PackageListTool, PackageInstallTool, PackageUninstallTool, RunScriptTool } from "../../src/tools/PackageManager";
 import type { ToolUseContext, CanUseToolFn } from "../../src/engine/Tool";
 
 const allow: CanUseToolFn = async () => ({ behavior: "allow" });
@@ -68,4 +68,17 @@ describe("安装/卸载错误兜底（不抛错，结构化失败文案）", () 
     );
     expect(String(r.data)).toMatch(/已卸载|卸载失败|not installed|Cannot uninstall|Skipping/);
   }, 90_000);
+});
+
+describe("RunScript 错误兜底", () => {
+  it("auto 探测 + npm run 不存在脚本 → 失败文案不抛错", async () => {
+    fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "t", scripts: {} }));
+    const r = await RunScriptTool.call({ script: "definitely-missing-script", packageManager: "auto" } as never, ctx(dir), allow);
+    expect(String(r.data)).toMatch(/脚本执行失败|npm ERR/);
+  }, 90_000);
+
+  it("空目录 auto → 无法检测项目类型", async () => {
+    const r = await RunScriptTool.call({ script: "x", packageManager: "auto" } as never, ctx(dir), allow);
+    expect(String(r.data)).toBe("无法检测项目类型");
+  });
 });

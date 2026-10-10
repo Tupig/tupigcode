@@ -34,15 +34,13 @@ export const CodeStatsTool = defineTool({
     }
 
     try {
+      // execFile 无 shell，-name 花括号不展开 → 显式 -o 组合；recursive:false 限 1 层（原 maxdepth 语义反了，一并修，fix #127）
+      const exts = ["ts", "js", "py", "go", "rs", "java", "c", "cpp", "h", "hpp"];
+      const nameArgs = exts.flatMap((e, i) => (i === 0 ? ["-name", `*.${e}`] : ["-o", "-name", `*.${e}`]));
+      const depthArgs = input.recursive === false ? ["-maxdepth", "1"] : [];
       const { stdout } = await execFileAsync(
         "find",
-        [
-          resolved,
-          "-type", "f",
-          "-name", "*.{ts,js,py,go,rs,java,c,cpp,h,hpp}",
-          input.recursive !== false ? "-maxdepth" : "",
-          input.recursive !== false ? "10" : "",
-        ].filter(Boolean),
+        [resolved, "-type", "f", "(", ...nameArgs, ")", ...depthArgs].filter(Boolean),
         { cwd: ctx.workDir, timeout: 10000, encoding: "utf-8" },
       );
 
@@ -300,8 +298,10 @@ async function analyzeDependencies(
     // 递归分析间接依赖
     for (const dep of direct.slice(0, 5)) { // 限制递归数量
       if (dep.startsWith(".")) {
-        // 相对路径依赖
-        const depPath = join(filePath, "..", dep);
+        // 相对路径依赖；TS ESM 的 ./x.js 实际文件是 x.ts → 回退映射（fix #127）
+        const depPath0 = join(filePath, "..", dep);
+        const depPath =
+          dep.endsWith(".js") && !existsSync(depPath0) ? depPath0.slice(0, -3) + ".ts" : depPath0;
         try {
           const subDeps = await analyzeDependencies(depPath, depth - 1, workDir);
           indirect.push(...subDeps.direct);

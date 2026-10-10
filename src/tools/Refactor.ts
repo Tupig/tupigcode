@@ -81,6 +81,10 @@ export const RenameSymbolTool = defineTool({
 
       return `已重命名「${input.oldName}」→「${input.newName}」\n修改了 ${changedCount} 个文件`;
     } catch (err) {
+      // grep 无匹配 exit 1 → 设计文案「未找到符号」（fix #127）
+      if (typeof err === "object" && err !== null && "code" in err && (err as { code?: number }).code === 1) {
+        return `未找到符号「${input.oldName}」的引用`;
+      }
       return `重命名失败：${err instanceof Error ? err.message : err}`;
     }
   },
@@ -286,12 +290,8 @@ export const ExtractConstantTool = defineTool({
       const content = await readFile(resolved, "utf-8");
 
       const constantDecl = `const ${input.constantName} = ${input.value};\n`;
-      const newContent = constantDecl + content;
-
-      const finalContent = newContent.replace(
-        new RegExp(escapeRegex(input.value), "g"),
-        input.constantName,
-      );
+      // 先替换正文再前插声明，避免声明行自身被替换成自引用（fix #127）
+      const finalContent = constantDecl + content.replace(new RegExp(escapeRegex(input.value), "g"), input.constantName);
 
       await writeFile(resolved, finalContent, "utf-8");
 

@@ -68,7 +68,8 @@ export async function getGitStatus(workDir: string): Promise<GitStatus> {
       timeout: 5000,
     });
 
-    const lines = statusOutput.trim().split("\n").filter(Boolean);
+    // 不可整体 trim：porcelain 首行「工作区修改」前导空格是语义（index 干净）（fix #128）
+    const lines = statusOutput.split("\n").filter(Boolean);
     const stagedFiles: string[] = [];
     const modifiedFiles: string[] = [];
     const untrackedFiles: string[] = [];

@@ -43,4 +43,27 @@ describe("notifyJobFailure", () => {
     const payload = JSON.parse(String(fetchMock.mock.calls[0][1].body)) as Record<string, unknown>;
     expect(String(payload["text"])).toContain("passed");
   });
+
+  it("超长无 message summary 截断到 120 字符 + 省略号", async () => {
+    process.env["NOTIFY_WEBHOOK_URL"] = "http://127.0.0.1:1/hook";
+    const fetchMock = vi.fn().mockResolvedValue({ status: 200 });
+    vi.stubGlobal("fetch", fetchMock);
+    notifyJobFailure({ job_id: 9, platform: "mac" } as never, "a", { blob: "x".repeat(300) });
+    await new Promise((r) => setTimeout(r, 0));
+    const payload = JSON.parse(String(fetchMock.mock.calls[0][1].body)) as Record<string, unknown>;
+    const text = String(payload["text"]);
+    expect(text).toContain("…");
+    // text 前缀「⚠️ 任务 #9 失败（mac/a）：」约 22 字符 + 截断 JSON 120 + …
+    expect(text.length).toBeLessThan(180);
+  });
+
+  it("summary 为 null → 空兜底不抛错", async () => {
+    process.env["NOTIFY_WEBHOOK_URL"] = "http://127.0.0.1:1/hook";
+    const fetchMock = vi.fn().mockResolvedValue({ status: 200 });
+    vi.stubGlobal("fetch", fetchMock);
+    notifyJobFailure({ job_id: 10, platform: "mac" } as never, "a", null);
+    await new Promise((r) => setTimeout(r, 0));
+    const payload = JSON.parse(String(fetchMock.mock.calls[0][1].body)) as Record<string, unknown>;
+    expect(payload["summary"]).toEqual({});
+  });
 });
